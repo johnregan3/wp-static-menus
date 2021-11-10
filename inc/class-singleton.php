@@ -9,6 +9,10 @@
 
 namespace Mindsize\WPSM;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Class Singleton.
  *

@@ -9,19 +9,13 @@
 
 namespace Mindsize\WPSM;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Class Cache_HTML.
  *
  * @since 0.1.0
  */
-class Cache_HTML extends Singleton {
-
-	/**
-	 * Initialize.
-	 *
-	 * This serves as the home for all hooks.
-	 */
-	protected function init() {
-
-	}
-}
+class Cache_HTML extends Cache {}

@@ -9,19 +9,13 @@
 
 namespace Mindsize\WPSM;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Class Cache_Transient.
  *
  * @since 0.1.0
  */
-class Cache_Transient extends Singleton {
-
-	/**
-	 * Initialize.
-	 *
-	 * This serves as the home for all hooks.
-	 */
-	protected function init() {
-
-	}
-}
+class Cache_Transient extends Cache {}
