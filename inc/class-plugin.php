@@ -2,6 +2,8 @@
 /**
  * Base Plugin class
  *
+ * @todo Allow for extending cache methods (and associated classes).
+ *
  * @package Mindsize\WPSM
  * @since   0.1.0
  * @author  Mindsize
@@ -64,17 +66,20 @@ class Plugin extends Singleton {
 	 * @action plugins_loaded
 	 */
 	protected function init() {
-
-		// On "get menu"...
-			// See if it is registered to this plugin
-				// Registered via location, not wp menu name.
-			// Get cached version
-				// Determine method
-			// Render it.
-			// Cache it.
-				// Determine method.
-
 		add_filter( 'pre_nav_menu', [ $this, 'pre_nav_menu' ], 20, 2 );
+	}
+
+	/**
+	 * Set properties using wp_nav_menu() args.
+	 *
+	 * @param stdClass $args Nav menu args.
+	 */
+	protected function set_properties( $args ) {
+		// Set our $menu_args property.
+		$this->menu_args = (array) $args;
+
+		// Set theme location property.
+		$this->location = $this->menu_args['theme_location'];
 	}
 
 	/**
@@ -92,36 +97,21 @@ class Plugin extends Singleton {
 	 * @return mixed  The cached markup, else the original value of $output.
 	 */
 	protected function pre_nav_menu( $output, $args ) {
-		if ( empty( $args['theme_location'] ) ) {
+		// Sanity check.
+		if ( empty( $args->theme_location ) ) {
 			return $output;
 		}
 
-		// Set our $menu_args property.
-		$this->menu_args = (array) $args;
+		$this->set_properties( $args );
 
-		// Set theme location property.
-		$this->location = $this->menu_args['theme_location'];
-
-		$is_registered = $this->is_registered_location();
-
-		/**
-		 * Filter if this theme location is registered as for caching.
-		 *
-		 * @param bool   $is_registered If the location is already registered.
-		 * @param string $location      The current theme location. This is also found in the args. Included for convenience.
-		 * @param array  $args          Array of wp_nav_menu() args.
-		 *
-		 * @return bool If the theme location is registered as eligble.
-		 */
-		$is_registered = apply_filters( 'ms_wpsm_is_location_registered', $is_registered, $this->location, $this->menu_args );
-
-		if ( true !== $is_registered ) {
+		if ( true !== $this->is_registered_location() ) {
 			return $output;
 		}
 
 		$markup = $this->get_cached_markup();
 
 		if ( ! empty( $markup ) && is_string( $markup ) ) {
+			$this->set_cached_markup( $markup );
 			return $markup;
 		}
 
@@ -134,7 +124,17 @@ class Plugin extends Singleton {
 	 * @return bool If the input location is registered with the plugin.
 	 */
 	public function is_registered_location() {
-		return in_array( $this->location, $this->registered_locations(), true );
+		$is_registered = in_array( $this->location, $this->registered_locations(), true );
+		/**
+		 * Filter if this theme location is registered as for caching.
+		 *
+		 * @param bool   $is_registered If the location is already registered.
+		 * @param string $location      The current theme location. This is also found in the args. Included for convenience.
+		 * @param array  $args          Array of wp_nav_menu() args.
+		 *
+		 * @return bool If the theme location is registered as eligble.
+		 */
+		return apply_filters( 'ms_wpsm_is_location_registered', $is_registered, $this->location, $this->menu_args );
 	}
 
 	/**
@@ -163,19 +163,6 @@ class Plugin extends Singleton {
 	}
 
 	/**
-	 * Fetch the markup from the cache.
-	 *
-	 * @return string The markup, else empty string.
-	 */
-	public function get_cached_markup() {
-		$cache_method = $this->get_cache_method();
-
-		if ( ! class_exists( $cache_method ) ) {
-			return '';
-		}
-	}
-
-	/**
 	 * Get the user-desginated caching method.
 	 *
 	 * @todo set via hook or option.
@@ -199,5 +186,35 @@ class Plugin extends Singleton {
 		$filtered_method = apply_filters( 'ms_wpsm_cache_method', $method, $this->menu_args );
 
 		return in_array( $filtered_method, $this->cache_methods, true ) ? $filtered_methods : $method;
+	}
+
+	/**
+	 * Fetch the markup from the cache.
+	 *
+	 * @todo Incomplete.
+	 *
+	 * @return string The markup, else empty string.
+	 */
+	public function get_cached_markup() {
+		$cache_method = $this->get_cache_method();
+
+		if ( ! class_exists( $cache_method ) ) {
+			return '';
+		}
+
+		// Fill this in.
+	}
+
+	/**
+	 * Store the markup in the cache.
+	 *
+	 * @todo Incomplete.
+	 *
+	 * @param string $markup The markup to be saved.
+	 */
+	public function set_cached_markup( $markup ) {
+		$method = $this->get_cache_method();
+
+		// Fill this in.
 	}
 }
