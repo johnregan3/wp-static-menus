@@ -4,6 +4,7 @@
  *
  * @todo Allow for extending cache methods (and associated classes).
  * @todo Delete caches on plugin deactivation.
+ * @todo Delete caches when settings are updated.
  *
  * @package Mindsize\WPSM
  * @since   0.1.0
@@ -66,7 +67,7 @@ class Plugin extends Singleton {
 	/**
 	 * The length of time to save the cache.
 	 *
-	 * PHP Time constants (e.g., HOUR_IN_SECONDS) work here.
+	 * WP Time constants (e.g., HOUR_IN_SECONDS) work here.
 	 *
 	 * @var int Lenghth of time, in seconds.
 	 */

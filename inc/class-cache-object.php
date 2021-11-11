@@ -25,10 +25,8 @@ class Cache_Object extends Cache {
 
 	/**
 	 * Cache group name.
-	 *
-	 * @var string
 	 */
-	protected $group = 'wms-wpsm-cache';
+	const CACHE_GROUP = 'wms-wpsm-cache';
 
 	/**
 	 * Cache group key.
@@ -45,6 +43,15 @@ class Cache_Object extends Cache {
 	protected $default_expires = MONTH_IN_SECONDS;
 
 	/**
+	 * Initialize.
+	 *
+	 * @todo filter the cache expiry.  Maybe move this to class Cache.
+	 */
+	public function __construct() {
+		$this->default_expires = Plugin::get_instance()->cache_expiry;
+	}
+
+	/**
 	 * Set the cache data.
 	 *
 	 * @param string $output The output.
@@ -57,7 +64,7 @@ class Cache_Object extends Cache {
 
 		$expires = isset( $conditions['expires'] ) && ! empty( $conditions['expires'] ) ? absint( $conditions['expires'] ) : $this->default_expires;
 
-		return wp_cache_set( $key, $output, $this->group, $expires );
+		return wp_cache_set( $key, $output, self::GROUP, $expires );
 	}
 
 	/**
@@ -69,7 +76,7 @@ class Cache_Object extends Cache {
 	 */
 	protected function get_cached_markup( $conditions ) {
 		$key = $this->get_key( $conditions );
-		return wp_cache_get( $key, $this->group );
+		return wp_cache_get( $key, self::GROUP );
 	}
 
 	/**
@@ -77,7 +84,7 @@ class Cache_Object extends Cache {
 	 */
 	public function clear_cache() {
 		if ( function_exists( 'wp_cache_delete_group' ) ) {
-			wp_cache_delete_group( $this->group );
+			wp_cache_delete_group( self::GROUP );
 		}
 	}
 
