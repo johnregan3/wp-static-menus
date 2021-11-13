@@ -44,6 +44,13 @@ class Menu_Location {
 	public $location = '';
 
 	/**
+	 * Cache associated with this Location.
+	 *
+	 * @var stdClass
+	 */
+	public $cache;
+
+	/**
 	 * Initialize.
 	 *
 	 * @param stdClass $args Nav menu args.
@@ -56,6 +63,9 @@ class Menu_Location {
 
 		// Set theme location property.
 		$this->location = $this->menu_args['theme_location'];
+
+		// Get instance of cached version of location.
+		$this->cache = get_cache_object();
 	}
 
 	/**
@@ -78,32 +88,23 @@ class Menu_Location {
 	}
 
 	/**
-	 * Fetch the markup from the cache.
+	 * Get the cached markup.
 	 *
-	 * @todo Incomplete.
+	 * @todo This.
 	 *
-	 * @return string The markup, else empty string.
+	 * @return string The cached markup.
 	 */
-	public function get_cached_markup() {
-		$cache_method = $this->plugin->cache_method;
-
-		if ( ! class_exists( $cache_method ) ) {
-			return '';
-		}
-
-		// Fill this in.
+	protected function get_markup() {
+		return '';
 	}
 
-	/**
-	 * Store the markup in the cache.
-	 *
-	 * @todo Incomplete.
-	 *
-	 * @param string $markup The markup to be saved.
-	 */
-	public function set_cached_markup( $markup ) {
-		$method = $this->plugin->cache_method;
+	protected function get_cache_object() {
+		// Get cache method.
+		$this->plugin->get_cache_method();
 
-		// Fill this in.
+		// If Cache Class exists...
+
+		// Get cache object.
+		return '';
 	}
 }

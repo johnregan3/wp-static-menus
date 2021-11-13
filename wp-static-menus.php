@@ -48,13 +48,12 @@ function ms_wpsm_autoload( $class ) {
 	$class = str_replace( 'mindsize\\wpsm\\', '', $class );
 	$class = str_replace( '\\', '/', $class );
 	$class = str_replace( '_', '-', $class );
-	$path  = get_stylesheet_directory() . '/inc/class-' . $class . '.php';
+	$path  = plugin_dir_path( __FILE__ ) . '/inc/class-' . $class . '.php';
 
 	if ( file_exists( $path ) && is_readable( $path ) ) {
 		include $path;
 	}
 }
-
 spl_autoload_register( 'ms_wpsm_autoload' );
 
 /**

@@ -40,5 +40,13 @@ abstract class Cache {
 	 */
 	abstract public function clear_cache();
 
+	/**
+	 * Check if the string is an enabled theme location.
+	 *
+	 * @return bool If the input location is registered for caching.
+	 */
+	public function is_enabled_location() {
+		return false;
+	}
 }
 

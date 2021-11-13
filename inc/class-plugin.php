@@ -5,6 +5,8 @@
  * @todo Allow for extending cache methods (and associated classes).
  * @todo Delete caches on plugin deactivation.
  * @todo Delete caches when settings are updated.
+ * @todo Delete caches when menus are edited.
+ * @todo Delete chaces when theme is saved...?
  *
  * @package Mindsize\WPSM
  * @since   0.1.0
@@ -44,7 +46,7 @@ class Plugin extends Singleton {
 	 *
 	 * @var array
 	 */
-	protected $cache_methods = [
+	public $cache_methods = [
 		self::CACHE_METHOD_OBJECT_CACHE,
 		self::CACHE_METHOD_HTML,
 		self::CACHE_METHOD_TRANSIENT,
@@ -78,19 +80,17 @@ class Plugin extends Singleton {
 	 *
 	 * This serves as the home for all hooks.
 	 *
-	 * // Clear cache on update menus.
-	 *
 	 * @action plugins_loaded
 	 */
 	protected function init() {
-		add_filter( 'pre_nav_menu', [ $this, 'pre_nav_menu' ], 20, 2 );
+		Settings::get_instance();
+		//add_filter( 'pre_nav_menu', [ $this, 'pre_nav_menu' ], 20, 2 );
 	}
 
 	/**
 	 * Set properties.
 	 */
 	protected function set_properties() {
-		$this->set_properties( $args );
 		$this->cache_method = $this->get_cache_method();
 		$this->locations    = $this->get_enabled_locations();
 	}
@@ -121,7 +121,7 @@ class Plugin extends Singleton {
 			return $output;
 		}
 
-		$markup = $this->get_cached_markup();
+		$markup = $menu->get_markup();
 
 		if ( ! empty( $markup ) && is_string( $markup ) ) {
 			$this->set_cached_markup( $markup );
@@ -140,6 +140,7 @@ class Plugin extends Singleton {
 	 */
 	public function get_enabled_locations() {
 		// Fetch user-designated theme locations to cache.
+		$settings  = Settings::get_instance();
 		$locations = [];
 
 		/**
