@@ -20,7 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Cache_HTML extends Cache {
 
-
 	/**
 	 * Initialize.
 	 */
@@ -40,9 +39,9 @@ class Cache_HTML extends Cache {
 	/**
 	 * Abstracted method for classes to override and store their data.
 	 *
-	 * @param string $output Output string.
+	 * @param string $html wp_nav_menu markup.
 	 */
-	protected function set_cached_markup( $output ) {
+	protected function set_cached_markup( $html ) {
 	}
 
 	/**
@@ -55,14 +54,5 @@ class Cache_HTML extends Cache {
 	 * Abstracted method for classes to override and clear their cache.
 	 */
 	public function clear_cache( $conditions ) {
-	}
-
-	/**
-	 * Check if the string is an enabled theme location.
-	 *
-	 * @return bool If the input location is registered for caching.
-	 */
-	public function is_enabled_location() {
-		return false;
 	}
 }

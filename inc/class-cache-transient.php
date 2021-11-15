@@ -50,13 +50,14 @@ class Cache_Transient extends Cache {
 	/**
 	 * Initialize.
 	 *
-	 * @param array $menu_args Menu Location args.
+	 * @param object $menu_args WP Nav Menu args.
 	 */
-	public function __construct( $menu_args = [] ) {
+	public function __construct( $menu_args ) {
 		$this->set_display_name();
-		$this->conditions = $menu_args;
-		$this->label      = $this->get_label();
-		$this->expires    = Plugin::get_instance()->cache_length;
+
+		// Cast as an array for easy handling.
+		$this->menu_args = (array) $menu_args;
+		$this->label     = $this->get_label();
 	}
 
 	/**
@@ -71,12 +72,12 @@ class Cache_Transient extends Cache {
 	/**
 	 * Set the cache data.
 	 *
-	 * @param string $output The output.
+	 * @param string $html The data to be stored.
 	 *
 	 * @return bool True if the value was set, false otherwise.
 	 */
-	protected function set_cached_markup( $output ) {
-		return set_transient( $this->label, $output, Plugin::get_instance()->cache_length );
+	public function set_cached_markup( $html ) {
+		return set_transient( $this->label, $html, Plugin::get_instance()->cache_length );
 	}
 
 	/**
@@ -85,19 +86,7 @@ class Cache_Transient extends Cache {
 	 * @return string The cache.
 	 */
 	public function get_cached_markup() {
-		$output = get_transient( $this->label );
-
-		if ( false === $output ) {
-
-			// Refresh the markup.
-			ob_start();
-			wp_nav_menu( $this->menu_args );
-			$output = ob_get_clean();
-
-			$this->set_cached_markup( $output );
-		}
-
-		return $output;
+		return get_transient( $this->label );
 	}
 
 	/**
@@ -105,7 +94,7 @@ class Cache_Transient extends Cache {
 	 *
 	 * @todo find good method for deleting transients from both DB and Object Cache.
 	 */
-	public function clear_cache( $conditions = [] ) {
+	public function clear_cache() {
 		if ( function_exists( 'delete_transient' ) ) {
 			return;
 		}

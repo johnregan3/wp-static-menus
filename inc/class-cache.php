@@ -37,15 +37,12 @@ abstract class Cache {
 	/**
 	 * Abstracted method for classes to override and store their data.
 	 *
-	 * @param string $output     Output string.
-	 * @param array  $conditions Array of conditions.
+	 * @param string $html Markup sent from wp_nav_menu.
 	 */
-	abstract protected function set_cached_markup( $output );
+	abstract public function set_cached_markup( $html );
 
 	/**
 	 * Abstracted method for classes to override and get their data.
-	 *
-	 * @param array $conditions Array of conditions.
 	 */
 	abstract public function get_cached_markup();
 
@@ -53,14 +50,5 @@ abstract class Cache {
 	 * Abstracted method for classes to override and clear their cache.
 	 */
 	abstract public function clear_cache( $conditions );
-
-	/**
-	 * Check if the string is an enabled theme location.
-	 *
-	 * @return bool If the input location is registered for caching.
-	 */
-	public function is_enabled_location() {
-		return false;
-	}
 }
 

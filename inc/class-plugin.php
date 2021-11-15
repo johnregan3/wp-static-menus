@@ -10,6 +10,7 @@
  *
  * @todo Settings: Build Disable all Caching
  * @todo Settings: Build Delete all Caches
+ * @todo allow filter for cache length
  *
  * @package Mindsize\WPSM
  * @since   0.1.0
@@ -87,6 +88,7 @@ class Plugin extends Singleton {
 		Settings::get_instance();
 		$this->set_properties();
 
+		add_filter( 'pre_wp_nav_menu', [ $this, 'pre_wp_nav_menu' ], 20, 2 );
 		add_filter( 'wp_nav_menu', [ $this, 'wp_nav_menu' ], 20, 2 );
 	}
 
@@ -103,7 +105,47 @@ class Plugin extends Singleton {
 	/**
 	 * Pre Nav Filter hook.
 	 *
-	 * This hook allows us to hijack the output when wp_nav_menu() is calld.
+	 * This hook allows us to hijack the output when wp_nav_menu() is called.
+	 *
+	 * Check to see if cached markup exists.  If not, let wp_nav_menu() proceed
+	 * and we'll cache the markup as wp_nav_menu() ends.
+	 *
+	 * @filter pre_wp_nav_menu
+	 *
+	 * @see wp_nav_menu()
+	 *
+	 * @param string|null $output The HTML content for the navigation menu.
+	 * @param stdClass    $args     An object containing wp_nav_menu() arguments.
+	 *
+	 * @return mixed  The cached markup, else the original value of $output.
+	 */
+	public function pre_wp_nav_menu( $output, $args ) {
+		// Sanity check.
+		if ( empty( $args->theme_location ) ) {
+			return $output;
+		}
+
+		if ( true !== $this->is_enabled_location( $args ) ) {
+			return $output;
+		}
+
+		$cache  = $this->get_cache_object( $args );
+		$markup = $cache->get_markup( $args );
+
+		if ( empty( $markup ) || ! is_string( $markup ) ) {
+			return $markup;
+		}
+
+		return $output;
+	}
+
+	/**
+	 * WP Nav Filter hook.
+	 *
+	 * This hook fires at the last moment before the nav menu is rendered.
+	 *
+	 * We use this to cache the markup so that the next time pre_wp_nav_menu is called,
+	 * the markup is already available.
 	 *
 	 * @filter wp_nav_menu
 	 *
@@ -112,28 +154,19 @@ class Plugin extends Singleton {
 	 * @param string   $nav_menu The HTML content for the navigation menu.
 	 * @param stdClass $args     An object containing wp_nav_menu() arguments.
 	 *
-	 * @return mixed  The cached markup, else the original value of $output.
+	 * @return mixed  The markup.
 	 */
 	public function wp_nav_menu( $nav_menu, $args ) {
-		// Sanity check.
 		if ( empty( $args->theme_location ) ) {
 			return $nav_menu;
 		}
-
-		/// $menu = new Menu_Location( $args );
 
 		if ( true !== $this->is_enabled_location( $args ) ) {
 			return $nav_menu;
 		}
 
-		// Returns Cache class object with menu args loaded.
 		$cache = $this->get_cache_object( $args );
-
-		$markup = $cache->get_markup();
-
-		if ( is_string( $markup ) ) {
-			return $markup;
-		}
+		$cache->set_markup( $nav_menu );
 
 		return $nav_menu;
 	}
@@ -146,11 +179,13 @@ class Plugin extends Singleton {
 	 * @return array Array of enabled Theme Locations
 	 */
 	public function get_enabled_locations() {
-		// Fetch user-designated theme locations to cache.
-		$setting   = Settings::get_instance()->get_value( 'theme_locations' );
+		// Fetch user-designated theme locations.
+		$setting = Settings::get_instance()->get_value( 'theme_locations' );
+
 		if ( empty( $setting ) || ! is_array( $setting ) ) {
 			$setting = [];
 		}
+
 		// Use array_keys due to the way the setting is saved.
 		$locations = array_keys( $setting );
 
@@ -171,28 +206,40 @@ class Plugin extends Singleton {
 	}
 
 	/**
-	 * Check if the string is an enabled theme location.
+	 * Check if these menu args request a valid theme location.
+	 *
+	 * @param object $menu_args WP Nav Menu args.
 	 *
 	 * @return bool If the input location is registered for caching.
 	 */
 	public function is_enabled_location( $menu_args ) {
-		if ( ! is_array( $menu_args ) || empty( $menu_args['theme_location'] ) ) {
+		if ( empty( $menu_args->theme_location ) ) {
 			return false;
 		}
-		$is_enabled = in_array( $menu_args['theme_location'], $this->locations, true );
+
+		$is_enabled = in_array( $menu_args->theme_location, $this->locations, true );
 
 		/**
 		 * Filter if this theme location is enabled as for caching.
 		 *
 		 * @param bool   $is_enabled If the location is already enabled.
 		 * @param string $location      The current theme location. This is also found in the args. Included for convenience.
-		 * @param array  $args          Array of wp_nav_menu() args.
+		 * @param object $args          Object of wp_nav_menu() args.
 		 *
 		 * @return bool If the theme location is enabled as eligble.
 		 */
-		return apply_filters( 'ms_wpsm_is_location_enabled', $is_enabled, $location, $this->menu_args );
+		return apply_filters( 'ms_wpsm_is_location_enabled', $is_enabled, $location, $menu_args );
 	}
 
+	/**
+	 * Get all registered Caching methods.
+	 *
+	 * Used for allowing user choice in Plugin settings.
+	 *
+	 *  Note that each class that extends Cache class must set a display name.
+	 *
+	 * @return array Array of allowed methods.
+	 */
 	public function get_cache_methods() {
 		$output        = [];
 		$cache_methods = [
@@ -251,8 +298,14 @@ class Plugin extends Singleton {
 		return in_array( $filtered_method, array_values( $this->cache_methods ), true ) ? $filtered_method : $settings_method;
 	}
 
+	/**
+	 * Get a new instance of the Cache class.
+	 *
+	 * @param array $menu_args Array of WP Nav Menu args.
+	 *
+	 * @return bool|stdClass An instance of the Cache class.
+	 */
 	public function get_cache_object( $menu_args ) {
-		// Get cache method.
 		$cache_class = $this->get_cache_method();
 
 		if ( class_exists( $cache_class ) && is_subclass_of( $cache_class, 'Mindsize\WPSM\Cache' ) ) {

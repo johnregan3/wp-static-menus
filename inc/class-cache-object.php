@@ -36,20 +36,16 @@ class Cache_Object extends Cache {
 	protected $key = '';
 
 	/**
-	 * Default expiration time, in seconds.
-	 *
-	 * @var int
-	 */
-	protected $default_expires = MONTH_IN_SECONDS;
-
-	/**
 	 * Initialize.
 	 *
 	 * @todo filter the cache expiry.  Maybe move this to class Cache.
 	 */
 	public function __construct() {
 		$this->set_display_name();
-		$this->default_expires = Plugin::get_instance()->cache_length;
+
+		// Cast as an array for easy handling.
+		$this->menu_args = (array) $menu_args;
+		$this->key       = $this->get_key();
 	}
 
 	/**
@@ -64,35 +60,27 @@ class Cache_Object extends Cache {
 	/**
 	 * Set the cache data.
 	 *
-	 * @param string $output The output.
-	 * @param array  $conditions The conditions array.
+	 * @param string $html The menu's markup.
 	 *
 	 * @return bool If the operation was successful.
 	 */
-	protected function set_cached_markup( $output ) {
-		$key = $this->get_key( $conditions );
-
-		$expires = isset( $conditions['expires'] ) && ! empty( $conditions['expires'] ) ? absint( $conditions['expires'] ) : $this->default_expires;
-
-		return wp_cache_set( $key, $output, self::GROUP, $expires );
+	protected function set_cached_markup( $html ) {
+		return wp_cache_set( $this->key, $html, self::GROUP, Plugin::get_instance()->cache_length );
 	}
 
 	/**
 	 * Get the cached data.
 	 *
-	 * @param array $conditions Array of Conditions.
-	 *
 	 * @return string The cache.
 	 */
 	public function get_cached_markup() {
-		$key = $this->get_key( $conditions );
-		return wp_cache_get( $key, self::GROUP );
+		return wp_cache_get( $this->key, self::GROUP );
 	}
 
 	/**
 	 * Clear the cache.
 	 */
-	public function clear_cache( $contidions ) {
+	public function clear_cache() {
 		if ( function_exists( 'wp_cache_delete_group' ) ) {
 			wp_cache_delete_group( self::GROUP );
 		}
@@ -101,13 +89,12 @@ class Cache_Object extends Cache {
 	/**
 	 * Get the cache key.
 	 *
-	 * @param array $conditions Array of conditions.
-	 *
 	 * @return string Encoded cache key string.
 	 */
-	protected function get_key( $conditions ) {
+	protected function get_key() {
+
 		// Sort array to ensure misordered but otherwise identical conditions aren't saved separately.
-		array_multisort( $conditions );
-		return md5( wp_json_encode( $conditions ) );
+		array_multisort( $this->menu_args );
+		return md5( wp_json_encode( $this->menu_args ) );
 	}
 }
