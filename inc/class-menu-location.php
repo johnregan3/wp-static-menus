@@ -55,17 +55,17 @@ class Menu_Location {
 	 *
 	 * @param stdClass $args Nav menu args.
 	 */
-	protected function __construct( $args ) {
+	public function __construct( $args ) {
 		$this->plugin = Plugin::get_instance();
 
-		// Set our $menu_args property. Cast as an array for convenience when filtering.
+		// Set our $menu_args property. Cast as an array for convenience.
 		$this->menu_args = (array) $args;
 
 		// Set theme location property.
 		$this->location = $this->menu_args['theme_location'];
 
 		// Get instance of cached version of location.
-		$this->cache = get_cache_object();
+		$this->cache = $this->get_cache_object();
 	}
 
 	/**
@@ -75,6 +75,7 @@ class Menu_Location {
 	 */
 	public function is_enabled_location() {
 		$is_enabled = in_array( $this->location, $this->plugin->locations, true );
+
 		/**
 		 * Filter if this theme location is enabled as for caching.
 		 *
@@ -94,17 +95,7 @@ class Menu_Location {
 	 *
 	 * @return string The cached markup.
 	 */
-	protected function get_markup() {
-		return '';
-	}
-
-	protected function get_cache_object() {
-		// Get cache method.
-		$this->plugin->get_cache_method();
-
-		// If Cache Class exists...
-
-		// Get cache object.
-		return '';
+	public function get_markup() {
+		return $this->cache->get_cached_markup();
 	}
 }

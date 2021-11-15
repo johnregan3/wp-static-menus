@@ -48,7 +48,17 @@ class Cache_Object extends Cache {
 	 * @todo filter the cache expiry.  Maybe move this to class Cache.
 	 */
 	public function __construct() {
-		$this->default_expires = Plugin::get_instance()->cache_expiry;
+		$this->set_display_name();
+		$this->default_expires = Plugin::get_instance()->cache_length;
+	}
+
+	/**
+	 * Required method to set the display name property for the Caching method.
+	 *
+	 * This is used to display the name in the settings.
+	 */
+	public function set_display_name() {
+		$this->display_name = __( 'Object Cache', 'ms-wpsm' );
 	}
 
 	/**
@@ -59,7 +69,7 @@ class Cache_Object extends Cache {
 	 *
 	 * @return bool If the operation was successful.
 	 */
-	protected function set_cached_markup( $output, $conditions ) {
+	protected function set_cached_markup( $output ) {
 		$key = $this->get_key( $conditions );
 
 		$expires = isset( $conditions['expires'] ) && ! empty( $conditions['expires'] ) ? absint( $conditions['expires'] ) : $this->default_expires;
@@ -74,7 +84,7 @@ class Cache_Object extends Cache {
 	 *
 	 * @return string The cache.
 	 */
-	protected function get_cached_markup( $conditions ) {
+	public function get_cached_markup() {
 		$key = $this->get_key( $conditions );
 		return wp_cache_get( $key, self::GROUP );
 	}
@@ -82,7 +92,7 @@ class Cache_Object extends Cache {
 	/**
 	 * Clear the cache.
 	 */
-	public function clear_cache() {
+	public function clear_cache( $contidions ) {
 		if ( function_exists( 'wp_cache_delete_group' ) ) {
 			wp_cache_delete_group( self::GROUP );
 		}

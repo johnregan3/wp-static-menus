@@ -34,58 +34,65 @@ class Cache_Transient extends Cache {
 	const LABEL = 'ms-wpsm';
 
 	/**
-	 * Cache group name.
+	 * Transient name.
 	 *
 	 * @var string
 	 */
-	protected $name = '';
+	protected $label = '';
 
 	/**
-	 * Default expiration time, in seconds.
+	 * Menu Args passed in from the Menu Location.
 	 *
-	 * @var int
+	 * @var array
 	 */
-	protected $expires = MONTH_IN_SECONDS;
+	protected $menu_args = [];
 
 	/**
 	 * Initialize.
 	 *
-	 * @todo filter the cache expiry.  Maybe move this to class Cache.
+	 * @param array $menu_args Menu Location args.
 	 */
-	public function __construct() {
-		$this->expires = Plugin::get_instance()->cache_expiry;
+	public function __construct( $menu_args = [] ) {
+		$this->set_display_name();
+		$this->conditions = $menu_args;
+		$this->label      = $this->get_label();
+		$this->expires    = Plugin::get_instance()->cache_length;
+	}
+
+	/**
+	 * Required method to set the display name property for the Caching method.
+	 *
+	 * This is used to display the name in the settings.
+	 */
+	public function set_display_name() {
+		$this->display_name = __( 'Transient', 'ms-wpsm' );
 	}
 
 	/**
 	 * Set the cache data.
 	 *
 	 * @param string $output The output.
-	 * @param array  $conditions The conditions array.
 	 *
 	 * @return bool True if the value was set, false otherwise.
 	 */
-	protected function set_cached_markup( $output, $conditions ) {
-		$name = $this->get_name( $conditions );
-
-		$expires = isset( $conditions['expires'] ) && ! empty( $conditions['expires'] ) ? absint( $conditions['expires'] ) : $this->expires;
-
-		return set_transient( $name, $output, $expires );
+	protected function set_cached_markup( $output ) {
+		return set_transient( $this->label, $output, Plugin::get_instance()->cache_length );
 	}
 
 	/**
 	 * Get the cached data.
 	 *
-	 * @param array $conditions Array of Conditions.
-	 *
 	 * @return string The cache.
 	 */
-	protected function get_cached_markup( $conditions ) {
-		$name   = $this->get_name( $conditions );
-		$output = get_transient( $name );
+	public function get_cached_markup() {
+		$output = get_transient( $this->label );
+
 		if ( false === $output ) {
 
 			// Refresh the markup.
-			$output = '';
+			ob_start();
+			wp_nav_menu( $this->menu_args );
+			$output = ob_get_clean();
 
 			$this->set_cached_markup( $output );
 		}
@@ -97,33 +104,27 @@ class Cache_Transient extends Cache {
 	 * Clear the cache.
 	 *
 	 * @todo find good method for deleting transients from both DB and Object Cache.
-	 *
-	 * @param array $conditions The conditions array.
 	 */
-	public function clear_cache( $conditions ) {
+	public function clear_cache( $conditions = [] ) {
 		if ( function_exists( 'delete_transient' ) ) {
 			return;
 		}
-		$name = $this->get_name( $conditions );
-		delete_transient( $name );
+		delete_transient( $this->label );
 	}
 
 	/**
-	 * Get the transient name.
-	 *
-	 * @param array $conditions Array of conditions.
+	 * Get the transient label.
 	 *
 	 * @return string Encoded transient name string.
 	 */
-	protected function get_name( $conditions ) {
+	protected function get_label() {
 		// Sort array to ensure misordered but otherwise identical conditions aren't saved separately.
-		array_multisort( $conditions );
+		array_multisort( $this->menu_args );
 
-		$name = self::LABEL . md5( wp_json_encode( $conditions ) );
+		$label = self::LABEL . md5( wp_json_encode( $this->menu_args ) );
 
 		// Trim to max transient name length.
-		return substr( $name, 0, 172 );
-
+		return substr( $label, 0, 172 );
 	}
 
 }

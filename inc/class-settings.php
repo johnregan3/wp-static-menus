@@ -20,8 +20,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Settings extends Singleton {
 
+	// Our page-specific setting.
 	const SETTING = 'ms_wpsm';
 
+	// WP Option name.
 	const OPTION_NAME = 'ms-wpsm';
 
 	/**
@@ -70,30 +72,6 @@ class Settings extends Singleton {
 
 		register_setting( self::SETTING, self::OPTION_NAME );
 
-
-		add_settings_section(
-			'plugin_config',
-			esc_html__( 'Plugin Configuration', 'ms-wpsm' ),
-			[ $this, 'plugin_config_intro' ],
-			self::SETTING
-		);
-
-		add_settings_field(
-			'caching_method',
-			__( 'Caching Method', 'lucado' ),
-			[ $this, 'caching_method_render' ],
-			self::SETTING,
-			'plugin_config'
-		);
-
-		add_settings_field(
-			'exceptions',
-			__( 'Exceptions', 'lucado' ),
-			[ $this, 'exceptions_render' ],
-			self::SETTING,
-			'plugin_config'
-		);
-
 		add_settings_section(
 			'menus',
 			esc_html__( 'Menus', 'ms-wpsm' ),
@@ -108,41 +86,68 @@ class Settings extends Singleton {
 			self::SETTING,
 			'menus'
 		);
-	}
 
-	public function plugin_config_intro() {}
+		add_settings_section(
+			'cache_config',
+			esc_html__( 'Cache Configuration', 'ms-wpsm' ),
+			[ $this, 'cache_config_intro' ],
+			self::SETTING
+		);
 
-	// section content cb
-	public function caching_method_render() {
-		$value = $this->get_value( 'caching_method' );
-		$field_name = self::OPTION_NAME . '[caching_method]';
-		?>
-		<select id="<?php echo esc_attr( $field_name ); ?>" name="<?php echo esc_attr( $field_name ); ?>">
-			<?php foreach ( $this->plugin->cache_methods as $method ) : ?>
-				<option value="<?php echo esc_attr( $method ); ?>" <?php selected( $method, $value ); ?>><?php echo esc_html( $method ); ?></option>
-			<?php endforeach; ?>
-		</select>
-		<br>
-		<p class="description">
-			<?php esc_html_e( 'Default is "Object Cache."', 'ms-wpsm' ); ?>
-		</p>
-		<?php
-	}
+		add_settings_field(
+			'caching_method',
+			__( 'Caching Method', 'lucado' ),
+			[ $this, 'caching_method_render' ],
+			self::SETTING,
+			'cache_config'
+		);
 
-	public function exceptions_render() {
-		$value = $this->get_value( 'exceptions' );
-		$value = ( ! empty( $value ) ) ? $value : 0;
-		$field_name = self::OPTION_NAME . '[exceptions]';
-		?>
-		<p><?php esc_html_e( 'Do not display cached menus to:', 'ms-wpsm' ); ?></p>
-		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="logged_in" <?php checked( $value, 'logged_in' ); ?>><?php esc_html_e( 'Logged-in Users', 'ms-wpsm' ); ?><br>
-		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="admins" <?php checked( $value, 'admins' ); ?>><?php esc_html_e( 'Administrators & Editors', 'ms-wpsm' ); ?><br><br>
-		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="0" <?php checked( $value, 0 ); ?>><?php esc_html_e( 'Display cached menus to everyone', 'ms-wpsm' ); ?><br>
-		<?php
+		add_settings_field(
+			'cache_length',
+			__( 'Cache Length', 'lucado' ),
+			[ $this, 'cache_length_render' ],
+			self::SETTING,
+			'cache_config'
+		);
+
+		add_settings_field(
+			'exceptions',
+			__( 'Exceptions', 'lucado' ),
+			[ $this, 'exceptions_render' ],
+			self::SETTING,
+			'cache_config'
+		);
+
+		add_settings_section(
+			'cache_tools',
+			esc_html__( 'Cache Tools', 'ms-wpsm' ),
+			[ $this, 'cache_tools_intro' ],
+			self::SETTING
+		);
+
+		add_settings_field(
+			'disable_caching',
+			__( 'Disable All Caching', 'lucado' ),
+			[ $this, 'disable_caching_render' ],
+			self::SETTING,
+			'cache_tools'
+		);
+
+		add_settings_field(
+			'empty_all_caches',
+			__( 'Empty All Caches', 'lucado' ),
+			[ $this, 'empty_all_caches_render' ],
+			self::SETTING,
+			'cache_tools'
+		);
 	}
 
 	public function menus_intro() {
+		?>
+		<hr>
+		<?php
 		echo wp_kses_post( 'Menus are cached by their displayed location.<br>Menu locations are determined by each theme, and user-created menus are assigned to these locations.', 'ms-wpsm' );
+
 	}
 
 	public function locations_render() {
@@ -165,8 +170,85 @@ class Settings extends Singleton {
 		endforeach;
 	}
 
+	public function cache_config_intro() {
+		?>
+		<hr>
+		<?php
+	}
+
+	public function caching_method_render() {
+		$value = $this->get_value( 'caching_method' );
+		$field_name = self::OPTION_NAME . '[caching_method]';
+		?>
+		<select id="<?php echo esc_attr( $field_name ); ?>" name="<?php echo esc_attr( $field_name ); ?>">
+			<?php foreach ( $this->plugin->cache_methods as $label => $class_name ) : ?>
+				<option value="<?php echo esc_attr( $class_name ); ?>" <?php selected( $class_name, $value ); ?>><?php echo esc_html( $label ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<br>
+		<p class="description">
+			<?php esc_html_e( 'Default is "Object Cache."', 'ms-wpsm' ); ?>
+		</p>
+		<?php
+	}
+
+	public function cache_length_render() {
+		$value      = $this->get_value( 'cache_length' );
+		$field_name = self::OPTION_NAME . '[cache_length]';
+
+		// Max is one week.
+		?>
+		<input name="<?php echo esc_attr( $field_name ); ?>" type="number" min="1" max="10080" value="<?php echo esc_attr( $value ); ?>" placeholder="15">
+		<br>
+		<p class="description">
+			<?php echo wp_kses_post( __( 'Maximum Cache Length in Minutes.<br>If empty, defaults to 15 minutes.', 'ms-wpsm' ) ); ?>
+		</p>
+		<?php
+	}
+
+	public function exceptions_render() {
+		$value      = $this->get_value( 'exceptions' );
+		$value      = ( ! empty( $value ) ) ? $value : 0;
+		$field_name = self::OPTION_NAME . '[exceptions]';
+		?>
+		<p><?php esc_html_e( 'Do not display cached menus to:', 'ms-wpsm' ); ?></p>
+		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="logged_in" <?php checked( $value, 'logged_in' ); ?>><?php esc_html_e( 'Logged-in Users', 'ms-wpsm' ); ?><br>
+		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="admins" <?php checked( $value, 'admins' ); ?>><?php esc_html_e( 'Administrators & Editors', 'ms-wpsm' ); ?><br><br>
+		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="0" <?php checked( $value, 0 ); ?>><?php esc_html_e( 'Display cached menus to everyone', 'ms-wpsm' ); ?><br>
+		<?php
+	}
+
+
+
+	public function cache_tools_intro() {
+		?>
+		<hr>
+		<?php
+	}
+
+	public function disable_caching_render() {
+		$value      = (bool) $this->get_value( 'disable_caching' );
+		$field_name = self::OPTION_NAME . '[disable_caching]';
+		$text       = ( ! empty( $value ) ) ? __( 'Caching is currently Disabled', 'ms-wpsm' ) : __( 'Caching is currently Enabled', 'ms-wpsm' );
+
+		?>
+		<input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $value, 1 ); ?>><?php esc_html_e( 'Disable Caching?', 'ms-wpsm' ); ?><br>
+		<p class="description">
+			<strong><?php echo esc_html( $text ); ?></strong>
+		</p>
+		<?php
+	}
+
+	public function empty_all_caches_render() {
+		$field_name = self::OPTION_NAME . '[empty_all_caches]';
+
+		?>
+		<button type="button" class="button button-secondary" name="<?php echo esc_attr( $field_name ); ?>"><?php esc_html_e( 'Empty All Caches Now', 'ms-wpsm' ); ?></button>
+		<?php
+	}
+
 	/**
-	 * Render the Test Manager Screen.
+	 * Render the Settings Page.
 	 */
 	public function render_settings_page() {
 		?>

@@ -6,7 +6,10 @@
  * @todo Delete caches on plugin deactivation.
  * @todo Delete caches when settings are updated.
  * @todo Delete caches when menus are edited.
- * @todo Delete chaces when theme is saved...?
+ * @todo Delete caches when theme is saved...?
+ *
+ * @todo Settings: Build Disable all Caching
+ * @todo Settings: Build Delete all Caches
  *
  * @package Mindsize\WPSM
  * @since   0.1.0
@@ -29,28 +32,24 @@ class Plugin extends Singleton {
 	/**
 	 * Lowercase class name.
 	 */
-	const CACHE_METHOD_OBJECT_CACHE = 'Cache_Object';
+	const CACHE_METHOD_OBJECT_CACHE = 'Mindsize\WPSM\Cache_Object';
 
 	/**
 	 * Lowercase class name.
 	 */
-	const CACHE_METHOD_HTML = 'Cache_HTML';
+	const CACHE_METHOD_HTML = 'Mindsize\WPSM\Cache_HTML';
 
 	/**
 	 * Lowercase class name.
 	 */
-	const CACHE_METHOD_TRANSIENT = 'Cache_Transient';
+	const CACHE_METHOD_TRANSIENT = 'Mindsize\WPSM\Cache_Transient';
 
 	/**
 	 * Array of caching methods.
 	 *
 	 * @var array
 	 */
-	public $cache_methods = [
-		self::CACHE_METHOD_OBJECT_CACHE,
-		self::CACHE_METHOD_HTML,
-		self::CACHE_METHOD_TRANSIENT,
-	];
+	public $cache_methods = [];
 
 	/**
 	 * The user-designated caching method.
@@ -71,6 +70,8 @@ class Plugin extends Singleton {
 	 *
 	 * WP Time constants (e.g., HOUR_IN_SECONDS) work here.
 	 *
+	 * @todo create a filter for this.
+	 *
 	 * @var int Lenghth of time, in seconds.
 	 */
 	public $cache_length = MONTH_IN_SECONDS;
@@ -82,17 +83,21 @@ class Plugin extends Singleton {
 	 *
 	 * @action plugins_loaded
 	 */
-	protected function init() {
+	public function init() {
 		Settings::get_instance();
-		//add_filter( 'pre_nav_menu', [ $this, 'pre_nav_menu' ], 20, 2 );
+		$this->set_properties();
+
+		add_filter( 'wp_nav_menu', [ $this, 'wp_nav_menu' ], 20, 2 );
 	}
 
 	/**
 	 * Set properties.
 	 */
-	protected function set_properties() {
-		$this->cache_method = $this->get_cache_method();
-		$this->locations    = $this->get_enabled_locations();
+	public function set_properties() {
+		$this->cache_methods = $this->get_cache_methods();
+		$this->cache_method  = $this->get_cache_method();
+		$this->locations     = $this->get_enabled_locations();
+
 	}
 
 	/**
@@ -100,35 +105,37 @@ class Plugin extends Singleton {
 	 *
 	 * This hook allows us to hijack the output when wp_nav_menu() is calld.
 	 *
-	 * @filter pre_nav_menu
+	 * @filter wp_nav_menu
 	 *
 	 * @see wp_nav_menu()
 	 *
-	 * @param string|null $output Nav menu output to short-circuit with. Default null.
-	 * @param stdClass    $args   An object containing wp_nav_menu() arguments.
+	 * @param string   $nav_menu The HTML content for the navigation menu.
+	 * @param stdClass $args     An object containing wp_nav_menu() arguments.
 	 *
 	 * @return mixed  The cached markup, else the original value of $output.
 	 */
-	protected function pre_nav_menu( $output, $args ) {
+	public function wp_nav_menu( $nav_menu, $args ) {
 		// Sanity check.
 		if ( empty( $args->theme_location ) ) {
-			return $output;
+			return $nav_menu;
 		}
 
-		$menu = new Menu_Location( $args );
+		/// $menu = new Menu_Location( $args );
 
-		if ( true !== $menu->is_enabled_location() ) {
-			return $output;
+		if ( true !== $this->is_enabled_location( $args ) ) {
+			return $nav_menu;
 		}
 
-		$markup = $menu->get_markup();
+		// Returns Cache class object with menu args loaded.
+		$cache = $this->get_cache_object( $args );
 
-		if ( ! empty( $markup ) && is_string( $markup ) ) {
-			$this->set_cached_markup( $markup );
+		$markup = $cache->get_markup();
+
+		if ( is_string( $markup ) ) {
 			return $markup;
 		}
 
-		return $output;
+		return $nav_menu;
 	}
 
 	/**
@@ -140,8 +147,12 @@ class Plugin extends Singleton {
 	 */
 	public function get_enabled_locations() {
 		// Fetch user-designated theme locations to cache.
-		$settings  = Settings::get_instance();
-		$locations = [];
+		$setting   = Settings::get_instance()->get_value( 'theme_locations' );
+		if ( empty( $setting ) || ! is_array( $setting ) ) {
+			$setting = [];
+		}
+		// Use array_keys due to the way the setting is saved.
+		$locations = array_keys( $setting );
 
 		/**
 		 * Filters theme locations eligible for caching.
@@ -150,11 +161,67 @@ class Plugin extends Singleton {
 		 *
 		 * @return array Array of eligible locations.
 		 */
-		$locations = appy_filters( 'ms_wpsm_enabled_locations', $locations );
+		$locations = apply_filters( 'ms_wpsm_enabled_locations', $locations );
+
 		if ( ! is_array( $locations ) ) {
 			$locations = [];
 		}
+
 		return $locations;
+	}
+
+	/**
+	 * Check if the string is an enabled theme location.
+	 *
+	 * @return bool If the input location is registered for caching.
+	 */
+	public function is_enabled_location( $menu_args ) {
+		if ( ! is_array( $menu_args ) || empty( $menu_args['theme_location'] ) ) {
+			return false;
+		}
+		$is_enabled = in_array( $menu_args['theme_location'], $this->locations, true );
+
+		/**
+		 * Filter if this theme location is enabled as for caching.
+		 *
+		 * @param bool   $is_enabled If the location is already enabled.
+		 * @param string $location      The current theme location. This is also found in the args. Included for convenience.
+		 * @param array  $args          Array of wp_nav_menu() args.
+		 *
+		 * @return bool If the theme location is enabled as eligble.
+		 */
+		return apply_filters( 'ms_wpsm_is_location_enabled', $is_enabled, $location, $this->menu_args );
+	}
+
+	public function get_cache_methods() {
+		$output        = [];
+		$cache_methods = [
+			self::CACHE_METHOD_OBJECT_CACHE,
+			self::CACHE_METHOD_HTML,
+			self::CACHE_METHOD_TRANSIENT,
+		];
+
+		/**
+		 * Note that Class names must be fully-qualified with all relevant namespaces.
+		 *
+		 * @param array $cache_methods Default Cache methods.
+		 *
+		 * @return array
+		 */
+		$cache_methods = apply_filters( 'ms_wpsm_cache_methods', $cache_methods );
+
+		// Ensure each class exists and has set the proper dislpay name property.
+		foreach ( $cache_methods as $class_name ) {
+			if ( class_exists( $class_name ) && is_subclass_of( $class_name, 'Mindsize\WPSM\Cache' ) ) {
+
+				$class = new $class_name();
+				if ( ! is_wp_error( $class->display_name ) && ! empty( $class->display_name ) ) {
+					// Must have a display name set to be included.
+					$output[ $class->display_name ] = $class_name;
+				}
+			}
+		}
+		return $output;
 	}
 
 	/**
@@ -166,19 +233,31 @@ class Plugin extends Singleton {
 	 */
 	public function get_cache_method() {
 
-		$method = self::CACHE_METHOD_TRANSIENT;
+		$settings_method = Settings::get_instance()->get_value( 'caching_method' );
 
 		/**
-		 * The desired caching method.
+		 * Override the caching method from the plugin settings.
 		 *
-		 * Requires use of one of this plugin's caching methods. See this Class's constants.
+		 * Requires use of one of this plugin's registered caching methods.
+		 *
+		 * @see ms_wpsm_cache_methods filter
 		 *
 		 * @param string $method The caching method.
 		 *
 		 * @return string The desired caching method.
 		 */
-		$filtered_method = apply_filters( 'ms_wpsm_cache_method', $method );
+		$filtered_method = apply_filters( 'ms_wpsm_cache_method', $settings_method );
 
-		return in_array( $filtered_method, $this->cache_methods, true ) ? $filtered_methods : $method;
+		return in_array( $filtered_method, array_values( $this->cache_methods ), true ) ? $filtered_method : $settings_method;
+	}
+
+	public function get_cache_object( $menu_args ) {
+		// Get cache method.
+		$cache_class = $this->get_cache_method();
+
+		if ( class_exists( $cache_class ) && is_subclass_of( $cache_class, 'Mindsize\WPSM\Cache' ) ) {
+			return new $cache_class( $menu_args );
+		}
+		return false;
 	}
 }
