@@ -40,25 +40,47 @@ class Settings extends Singleton {
 	 */
 	public $option = [];
 
+	/**
+	 * Inititalize.
+	 */
 	protected function init() {
 		$this->plugin = Plugin::get_instance();
 		$this->option = $this->get_option();
 		add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
+		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
+
 	}
 
-	// Load up our option property.
+	/**
+	 * Load our option property.
+	 *
+	 * @return array Array from the option.
+	 */
 	public function get_option() {
 		return get_option( self::OPTION_NAME );
 	}
 
-	// Return a value from the saved settings.
+	/**
+	 * Return a value from the saved settings.
+	 *
+	 * @param string $key A setting name.
+	 *
+	 * @return mixed The value of the setting, else false.
+	 */
 	public function get_value( $key ) {
 		return ( isset( $this->option[ $key ] ) ) ? $this->option[ $key ] : false;
 	}
 
+	/**
+	 * Register the Settings Page.
+	 *
+	 * Also fires our footer scripts hook.
+	 *
+	 * @action admin_menu
+	 */
 	public function add_settings_page() {
-		add_submenu_page(
+		$hook = add_submenu_page(
 			'tools.php',
 			esc_html__( 'Static Menus', 'ms-wpsm' ),
 			esc_html__( 'WP Static Menus', 'ms-wpsm' ),
@@ -66,10 +88,16 @@ class Settings extends Singleton {
 			self::SETTING,
 			[ $this, 'render_settings_page' ]
 		);
+
+		add_action( 'admin_print_footer_scripts-' . $hook, [ $this, 'footer_script' ] );
 	}
 
+	/**
+	 * Register our setting, settings & fields.
+	 *
+	 * @action admin_init
+	 */
 	public function register_settings() {
-
 		register_setting( self::SETTING, self::OPTION_NAME );
 
 		add_settings_section(
@@ -79,6 +107,9 @@ class Settings extends Singleton {
 			self::SETTING
 		);
 
+		/**
+		 * @todo Add custom validator for checkboxes to set/get the value more clearly.
+		 */
 		add_settings_field(
 			'theme_locations',
 			__( 'Cached Menu Locations', 'lucado' ),
@@ -86,6 +117,7 @@ class Settings extends Singleton {
 			self::SETTING,
 			'menus'
 		);
+
 
 		add_settings_section(
 			'cache_config',
@@ -102,9 +134,23 @@ class Settings extends Singleton {
 			'cache_config'
 		);
 
+		$html_field_classes = 'html-settings';
+		if ( Plugin::CACHE_METHOD_HTML !== $this->get_value( 'caching_method' ) ) {
+			$html_field_classes .= ' hidden'; // Add "hidden" class to hide.
+		}
+
+		add_settings_field(
+			'html_settings',
+			__( 'HTML Cache Settings', 'lucado' ) . '<p class="description" style="font-weight: normal">' . __( 'The location where HTML files will be stored', 'ms-wpsm' ) . '</p>',
+			[ $this, 'html_settings_render' ],
+			self::SETTING,
+			'cache_config',
+			[ 'class' => $html_field_classes ]
+		);
+
 		add_settings_field(
 			'cache_length',
-			__( 'Cache Length', 'lucado' ),
+			__( 'Cache Length', 'lucado' ) . '<p class="description" style="font-weight: normal">' . __( 'Maximum Cache Length, in Minutes', 'ms-wpsm' ) . '</p>',
 			[ $this, 'cache_length_render' ],
 			self::SETTING,
 			'cache_config'
@@ -142,14 +188,18 @@ class Settings extends Singleton {
 		);
 	}
 
+	/**
+	 * Intro text to the Menus settings section.
+	 */
 	public function menus_intro() {
-		?>
-		<hr>
-		<?php
+		echo wp_kses_post( '<hr>' );
 		echo wp_kses_post( 'Menus are cached by their displayed location.<br>Menu locations are determined by each theme, and user-created menus are assigned to these locations.', 'ms-wpsm' );
 
 	}
 
+	/**
+	 * Render the Menu Locations field.
+	 */
 	public function locations_render() {
 		$value      = $this->get_value( 'theme_locations' );
 		$value      = ( ! empty( $value ) && is_array( $value ) ) ? $value : [];
@@ -169,18 +219,21 @@ class Settings extends Singleton {
 			<?php
 		endforeach;
 	}
-
+	/**
+	 * Intro text to the Cache Config settings section.
+	 */
 	public function cache_config_intro() {
-		?>
-		<hr>
-		<?php
+		echo wp_kses_post( '<hr>' );
 	}
 
+	/**
+	 * Render the Caching method field.
+	 */
 	public function caching_method_render() {
-		$value = $this->get_value( 'caching_method' );
+		$value      = $this->get_value( 'caching_method' );
 		$field_name = self::OPTION_NAME . '[caching_method]';
 		?>
-		<select id="<?php echo esc_attr( $field_name ); ?>" name="<?php echo esc_attr( $field_name ); ?>">
+		<select id="caching-method-select" name="<?php echo esc_attr( $field_name ); ?>">
 			<?php foreach ( $this->plugin->cache_methods as $label => $class_name ) : ?>
 				<option value="<?php echo esc_attr( $class_name ); ?>" <?php selected( $class_name, $value ); ?>><?php echo esc_html( $label ); ?></option>
 			<?php endforeach; ?>
@@ -192,20 +245,48 @@ class Settings extends Singleton {
 		<?php
 	}
 
+	/**
+	 * Render the settings fields for HTML Caching.
+	 */
+	public function html_settings_render() {
+		$value      = $this->get_value( 'html_settings' );
+		$value      = ( is_array( $value ) ) ? $value : [];
+		$file_path  = ( ! empty( $value['file_path'] ) ) ? $value['file_path'] : '';
+		$dir_name   = ( ! empty( $value['dir_name'] ) ) ? $value['dir_name'] : '';
+		$field_name = self::OPTION_NAME . '[html_settings]';
+
+		?>
+		<p>
+			<?php esc_html_e( 'Cache File Path', 'ms-wpsm' ); ?><br>
+			<input class="widefat" type="text" name="<?php echo esc_attr( $field_name . '[file_path]' ); ?>" placeholder="<?php echo esc_html( WP_CONTENT_DIR ); ?>" value="<?php echo esc_html( $file_path ); ?>"/>
+		</p>
+		<p>
+			<?php esc_html_e( 'Cache Directory Name', 'ms-wpsm' ); ?><br>
+			<input type="text" name="<?php echo esc_attr( $field_name . '[dir_name]' ); ?>" placeholder="cache" value="<?php echo esc_html( $dir_name ); ?>"/>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Render the cache length settings field.
+	 */
 	public function cache_length_render() {
 		$value      = $this->get_value( 'cache_length' );
 		$field_name = self::OPTION_NAME . '[cache_length]';
 
 		// Max is one week.
 		?>
-		<input name="<?php echo esc_attr( $field_name ); ?>" type="number" min="1" max="10080" value="<?php echo esc_attr( $value ); ?>" placeholder="15">
+		<input name="<?php echo esc_attr( $field_name ); ?>" type="number" min="1" max="10080" value="<?php echo esc_attr( $value ); ?>" placeholder="60">
 		<br>
 		<p class="description">
-			<?php echo wp_kses_post( __( 'Maximum Cache Length in Minutes.<br>If empty, defaults to 15 minutes.', 'ms-wpsm' ) ); ?>
+			<?php esc_html_e( 'Defaults to 60 minutes.', 'ms-wpsm' ); ?>
 		</p>
 		<?php
 	}
 
+	/**
+	 * Render the display exceptions field.
+	 */
 	public function exceptions_render() {
 		$value      = $this->get_value( 'exceptions' );
 		$value      = ( ! empty( $value ) ) ? $value : 0;
@@ -218,30 +299,36 @@ class Settings extends Singleton {
 		<?php
 	}
 
-
-
+	/**
+	 * Intro text to the Tools section.
+	 */
 	public function cache_tools_intro() {
-		?>
-		<hr>
-		<?php
+		echo wp_kses_post( '<hr>' );
 	}
 
+	/**
+	 * Render the Disable Caching field.
+	 */
 	public function disable_caching_render() {
 		$value      = (bool) $this->get_value( 'disable_caching' );
 		$field_name = self::OPTION_NAME . '[disable_caching]';
-		$text       = ( ! empty( $value ) ) ? __( 'Caching is currently Disabled', 'ms-wpsm' ) : __( 'Caching is currently Enabled', 'ms-wpsm' );
+		$text       = ( ! empty( $value ) ) ? __( 'Caching is disabled.', 'ms-wpsm' ) : __( 'Caching is enabled.', 'ms-wpsm' );
+		$text_color = ( ! empty( $value ) ) ? '#b32d2e' : '#00a32a';
 
 		?>
-		<input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $value, 1 ); ?>><?php esc_html_e( 'Disable Caching?', 'ms-wpsm' ); ?><br>
-		<p class="description">
+		<p id="disable-caching" class="description" style="color: <?php echo esc_attr( $text_color ); ?>">
 			<strong><?php echo esc_html( $text ); ?></strong>
 		</p>
+		<input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $value, 1 ); ?>><?php esc_html_e( 'Disable Caching?', 'ms-wpsm' ); ?><br>
+
 		<?php
 	}
 
+	/**
+	 * Render the Empty All Caches button field.
+	 */
 	public function empty_all_caches_render() {
 		$field_name = self::OPTION_NAME . '[empty_all_caches]';
-
 		?>
 		<button type="button" class="button button-secondary" name="<?php echo esc_attr( $field_name ); ?>"><?php esc_html_e( 'Empty All Caches Now', 'ms-wpsm' ); ?></button>
 		<?php
@@ -252,9 +339,8 @@ class Settings extends Singleton {
 	 */
 	public function render_settings_page() {
 		?>
-
 			<div class="wrap">
-				<h1><?php esc_html_e( 'WP Static Menus', 'ethree' ); ?></h1>
+				<h1><?php esc_html_e( 'WP Static Menus', 'ms-wpsm' ); ?></h1>
 				<form method="post" action="options.php">
 				<?php
 					settings_fields( self::SETTING );
@@ -266,10 +352,56 @@ class Settings extends Singleton {
 		<?php
 	}
 
+	/**
+	 * Get the Menu Locations with caching enabled.
+	 *
+	 * Note that this is different than Plugin::get_enabled_locations(),
+	 * as this is a setting, which does not use the filter hook.
+	 */
 	public function get_enabled_locations() {
 		$locations = $this->get_value( 'theme_locations' );
 		$locations = ( ! empty( $locations ) && is_array( $locations ) ) ? $value : [];
 		return array_keys( $locations );
+	}
+
+	/**
+	 * Render the footer scripts.
+	 *
+	 * @action admin_print_footer_scripts-{$hook}
+	 */
+	public function footer_script() {
+		?>
+		<script>
+			(function($) {
+				$( document ).on( 'change', '#caching-method-select', function() {
+					if ( $(this).val() === '<?php echo esc_js( wp_slash( Plugin::CACHE_METHOD_HTML ) ); ?>' ) {
+						$( '.html-settings' ).removeClass( 'hidden' );
+					} else {
+						$( '.html-settings' ).addClass( 'hidden' );
+					}
+				});
+			})(jQuery);
+		</script>
+		<?php
+	}
+
+	public function admin_notices() {
+		$screen = get_current_screen();
+
+		if ( 'tools_page_ms_wpsm' !== $screen->id ) {
+			return;
+		}
+
+		if ( empty( $this->get_value( 'disable_caching' ) ) ) {
+			return;
+		}
+
+		?>
+			<div class="notice notice-error">
+				<?php // translators: link to disable-caching ID on the page. ?>
+				<p><?php echo wp_kses_post( sprintf( __( 'Caching is currently <a href="%s">Disabled</a>.', 'ms-wpsm' ), '#disable-caching' ) ); ?></p>
+			</div>
+		<?php
 	}
 
 

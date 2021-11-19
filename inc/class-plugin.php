@@ -2,13 +2,11 @@
 /**
  * Base Plugin class
  *
- * @todo Allow for extending cache methods (and associated classes).
  * @todo Delete caches on plugin deactivation.
  * @todo Delete caches when settings are updated.
  * @todo Delete caches when menus are edited.
  * @todo Delete caches when theme is saved...?
  *
- * @todo Settings: Build Disable all Caching
  * @todo Settings: Build Delete all Caches
  * @todo allow filter for cache length
  *
@@ -46,6 +44,13 @@ class Plugin extends Singleton {
 	const CACHE_METHOD_TRANSIENT = 'Mindsize\WPSM\Cache_Transient';
 
 	/**
+	 * The WP Admin Settings instance.
+	 *
+	 * @var object
+	 */
+	public $settings;
+
+	/**
 	 * Array of caching methods.
 	 *
 	 * @var array
@@ -73,7 +78,7 @@ class Plugin extends Singleton {
 	 *
 	 * @todo create a filter for this.
 	 *
-	 * @var int Lenghth of time, in seconds.
+	 * @var int Length of time, in seconds.
 	 */
 	public $cache_length = MONTH_IN_SECONDS;
 
@@ -85,21 +90,25 @@ class Plugin extends Singleton {
 	 * @action plugins_loaded
 	 */
 	public function init() {
-		Settings::get_instance();
 		$this->set_properties();
+
+		if ( ! empty( $this->settings->get_value( 'disable_caching' ) ) ) {
+			return;
+		}
 
 		add_filter( 'pre_wp_nav_menu', [ $this, 'pre_wp_nav_menu' ], 20, 2 );
 		add_filter( 'wp_nav_menu', [ $this, 'wp_nav_menu' ], 20, 2 );
 	}
 
 	/**
-	 * Set properties.
+	 * Set class properties.
 	 */
 	public function set_properties() {
+		$this->settings      = Settings::get_instance();
 		$this->cache_methods = $this->get_cache_methods();
 		$this->cache_method  = $this->get_cache_method();
+		$this->cache_length  = $this->get_cache_length();
 		$this->locations     = $this->get_enabled_locations();
-
 	}
 
 	/**
@@ -180,7 +189,7 @@ class Plugin extends Singleton {
 	 */
 	public function get_enabled_locations() {
 		// Fetch user-designated theme locations.
-		$setting = Settings::get_instance()->get_value( 'theme_locations' );
+		$setting = $this->settings->get_value( 'theme_locations' );
 
 		if ( empty( $setting ) || ! is_array( $setting ) ) {
 			$setting = [];
@@ -236,7 +245,7 @@ class Plugin extends Singleton {
 	 *
 	 * Used for allowing user choice in Plugin settings.
 	 *
-	 *  Note that each class that extends Cache class must set a display name.
+	 * Note that each class that extends Cache class must set a display_name property.
 	 *
 	 * @return array Array of allowed methods.
 	 */
@@ -257,13 +266,14 @@ class Plugin extends Singleton {
 		 */
 		$cache_methods = apply_filters( 'ms_wpsm_cache_methods', $cache_methods );
 
-		// Ensure each class exists and has set the proper dislpay name property.
+		// Ensure each class exists and has set the proper display_name property.
 		foreach ( $cache_methods as $class_name ) {
 			if ( class_exists( $class_name ) && is_subclass_of( $class_name, 'Mindsize\WPSM\Cache' ) ) {
 
-				$class = new $class_name();
+				$class = new $class_name( [] );
 				if ( ! is_wp_error( $class->display_name ) && ! empty( $class->display_name ) ) {
-					// Must have a display name set to be included.
+
+					// Must have a display_name property set to be included.
 					$output[ $class->display_name ] = $class_name;
 				}
 			}
@@ -280,12 +290,14 @@ class Plugin extends Singleton {
 	 */
 	public function get_cache_method() {
 
-		$settings_method = Settings::get_instance()->get_value( 'caching_method' );
+		$settings_method = $this->settings->get_value( 'caching_method' );
 
 		/**
 		 * Override the caching method from the plugin settings.
 		 *
 		 * Requires use of one of this plugin's registered caching methods.
+		 *
+		 * @todo add $menu_args to this filter.
 		 *
 		 * @see ms_wpsm_cache_methods filter
 		 *
@@ -296,6 +308,32 @@ class Plugin extends Singleton {
 		$filtered_method = apply_filters( 'ms_wpsm_cache_method', $settings_method );
 
 		return in_array( $filtered_method, array_values( $this->cache_methods ), true ) ? $filtered_method : $settings_method;
+	}
+
+	/**
+	 * Filter the Cache Length Setting.
+	 *
+	 * @return int|string Cache length, in seconds.
+	 */
+	public function get_cache_length() {
+		$cache_length = $this->settings->get_value( 'cache_length' );
+
+		/**
+		 * Override the caching length from the plugin settings.
+		 *
+		 * @todo add $menu_args to this filter.
+		 *
+		 * @param string $method The cache length.
+		 *
+		 * @return string The desired cache length, in seconds.
+		 */
+		$filtered_cache_length = apply_filters( 'ms_wpsm_cache_length', $cache_length );
+
+		if ( ! empty( $filtered_cache_length ) && is_numeric( $filtered_cache_length ) ) {
+			return $filtered_cache_length;
+		}
+
+		return $cache_length;
 	}
 
 	/**
@@ -311,6 +349,7 @@ class Plugin extends Singleton {
 		if ( class_exists( $cache_class ) && is_subclass_of( $cache_class, 'Mindsize\WPSM\Cache' ) ) {
 			return new $cache_class( $menu_args );
 		}
+
 		return false;
 	}
 }

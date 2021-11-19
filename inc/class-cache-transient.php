@@ -94,7 +94,7 @@ class Cache_Transient extends Cache {
 	 *
 	 * @todo find good method for deleting transients from both DB and Object Cache.
 	 */
-	public function clear_cache() {
+	public function clear_cache( $conditions ) {
 		if ( function_exists( 'delete_transient' ) ) {
 			return;
 		}

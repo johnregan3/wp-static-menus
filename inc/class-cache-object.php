@@ -38,9 +38,9 @@ class Cache_Object extends Cache {
 	/**
 	 * Initialize.
 	 *
-	 * @todo filter the cache expiry.  Maybe move this to class Cache.
+	 * @param object $menu_args WP Nav Menu args.
 	 */
-	public function __construct() {
+	public function __construct( $menu_args ) {
 		$this->set_display_name();
 
 		// Cast as an array for easy handling.
@@ -64,7 +64,7 @@ class Cache_Object extends Cache {
 	 *
 	 * @return bool If the operation was successful.
 	 */
-	protected function set_cached_markup( $html ) {
+	public function set_cached_markup( $html ) {
 		return wp_cache_set( $this->key, $html, self::GROUP, Plugin::get_instance()->cache_length );
 	}
 
@@ -80,7 +80,7 @@ class Cache_Object extends Cache {
 	/**
 	 * Clear the cache.
 	 */
-	public function clear_cache() {
+	public function clear_cache( $conditions ) {
 		if ( function_exists( 'wp_cache_delete_group' ) ) {
 			wp_cache_delete_group( self::GROUP );
 		}
