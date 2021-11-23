@@ -3,12 +3,10 @@
  * Base Plugin class
  *
  * @todo Delete caches on plugin deactivation.
- * @todo Delete caches when settings are updated.
+ * @todo Delete caches when plugin settings are updated.
  * @todo Delete caches when menus are edited.
- * @todo Delete caches when theme is saved...?
- *
- * @todo Settings: Build Delete all Caches
- * @todo allow filter for cache length
+ * @todo Delete caches when theme is saved.
+ * @todo Build delete_all_caches().
  *
  * @package Mindsize\WPSM
  * @since   0.1.0
@@ -28,19 +26,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Plugin extends Singleton {
 
-	/**
-	 * Lowercase class name.
-	 */
 	const CACHE_METHOD_OBJECT_CACHE = 'Mindsize\WPSM\Cache_Object';
 
-	/**
-	 * Lowercase class name.
-	 */
 	const CACHE_METHOD_HTML = 'Mindsize\WPSM\Cache_HTML';
 
-	/**
-	 * Lowercase class name.
-	 */
 	const CACHE_METHOD_TRANSIENT = 'Mindsize\WPSM\Cache_Transient';
 
 	/**
@@ -80,7 +69,7 @@ class Plugin extends Singleton {
 	 *
 	 * @var int Length of time, in seconds.
 	 */
-	public $cache_length = MONTH_IN_SECONDS;
+	public $cache_length = HOUR_IN_SECONDS;
 
 	/**
 	 * Initialize.
@@ -98,6 +87,7 @@ class Plugin extends Singleton {
 
 		add_filter( 'pre_wp_nav_menu', [ $this, 'pre_wp_nav_menu' ], 20, 2 );
 		add_filter( 'wp_nav_menu', [ $this, 'wp_nav_menu' ], 20, 2 );
+		add_action( 'admin_bar_menu', array( $this, 'admin_bar_menu' ), 999 );
 	}
 
 	/**
@@ -109,6 +99,20 @@ class Plugin extends Singleton {
 		$this->cache_method  = $this->get_cache_method();
 		$this->cache_length  = $this->get_cache_length();
 		$this->locations     = $this->get_enabled_locations();
+	}
+
+	/**
+	 * @todo add this functionality.
+	 */
+	public static function admin_bar_menu( $wp_admin_bar ) {
+		$args = [
+			'id'    => 'ms-wpsm-empty',
+			'title' => __( 'Empty Menu Cache', 'ms-wpsm' ),
+			'href'  => '',
+			self::empty_cache_url(),
+		];
+
+		$wp_admin_bar->add_node( $args );
 	}
 
 	/**
@@ -181,6 +185,13 @@ class Plugin extends Singleton {
 	}
 
 	/**
+	 * @todo Add this functionality.
+	 */
+	private static function empty_cache_url() {
+		return wp_nonce_url( admin_url( 'options-general.php?page=rest-cache&rest_cache_empty=1' ), 'rest_cache_options', 'rest_cache_nonce' );
+	}
+
+	/**
 	 * Fetch the array of theme menu locations to cache.
 	 *
 	 * @todo set via a hook or option.
@@ -237,7 +248,7 @@ class Plugin extends Singleton {
 		 *
 		 * @return bool If the theme location is enabled as eligble.
 		 */
-		return apply_filters( 'ms_wpsm_is_location_enabled', $is_enabled, $location, $menu_args );
+		return apply_filters( 'ms_wpsm_is_location_enabled', $is_enabled, $menu_args->theme_location, $menu_args );
 	}
 
 	/**

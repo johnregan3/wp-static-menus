@@ -102,7 +102,7 @@ class Settings extends Singleton {
 
 		add_settings_section(
 			'menus',
-			esc_html__( 'Menus', 'ms-wpsm' ),
+			esc_html__( 'Menu Locations', 'ms-wpsm' ),
 			[ $this, 'menus_intro' ],
 			self::SETTING
 		);
@@ -112,12 +112,11 @@ class Settings extends Singleton {
 		 */
 		add_settings_field(
 			'theme_locations',
-			__( 'Cached Menu Locations', 'lucado' ),
+			__( 'Cached Menu Locations', 'ms-wpsm' ),
 			[ $this, 'locations_render' ],
 			self::SETTING,
 			'menus'
 		);
-
 
 		add_settings_section(
 			'cache_config',
@@ -128,7 +127,7 @@ class Settings extends Singleton {
 
 		add_settings_field(
 			'caching_method',
-			__( 'Caching Method', 'lucado' ),
+			__( 'Caching Method', 'ms-wpsm' ),
 			[ $this, 'caching_method_render' ],
 			self::SETTING,
 			'cache_config'
@@ -141,7 +140,7 @@ class Settings extends Singleton {
 
 		add_settings_field(
 			'html_settings',
-			__( 'HTML Cache Settings', 'lucado' ) . '<p class="description" style="font-weight: normal">' . __( 'The location where HTML files will be stored', 'ms-wpsm' ) . '</p>',
+			__( 'HTML Cache Settings', 'ms-wpsm' ) . '<p class="description" style="font-weight: normal">' . __( 'The location where cache files will be stored', 'ms-wpsm' ) . '</p>',
 			[ $this, 'html_settings_render' ],
 			self::SETTING,
 			'cache_config',
@@ -150,7 +149,7 @@ class Settings extends Singleton {
 
 		add_settings_field(
 			'cache_length',
-			__( 'Cache Length', 'lucado' ) . '<p class="description" style="font-weight: normal">' . __( 'Maximum Cache Length, in Minutes', 'ms-wpsm' ) . '</p>',
+			__( 'Cache Length', 'ms-wpsm' ) . '<p class="description" style="font-weight: normal">' . __( 'Maximum cache length, in minutes', 'ms-wpsm' ) . '</p>',
 			[ $this, 'cache_length_render' ],
 			self::SETTING,
 			'cache_config'
@@ -158,7 +157,7 @@ class Settings extends Singleton {
 
 		add_settings_field(
 			'exceptions',
-			__( 'Exceptions', 'lucado' ),
+			__( 'Exceptions', 'ms-wpsm' ),
 			[ $this, 'exceptions_render' ],
 			self::SETTING,
 			'cache_config'
@@ -173,7 +172,7 @@ class Settings extends Singleton {
 
 		add_settings_field(
 			'disable_caching',
-			__( 'Disable All Caching', 'lucado' ),
+			__( 'Disable All Caching', 'ms-wpsm' ),
 			[ $this, 'disable_caching_render' ],
 			self::SETTING,
 			'cache_tools'
@@ -181,7 +180,7 @@ class Settings extends Singleton {
 
 		add_settings_field(
 			'empty_all_caches',
-			__( 'Empty All Caches', 'lucado' ),
+			__( 'Empty All Caches', 'ms-wpsm' ),
 			[ $this, 'empty_all_caches_render' ],
 			self::SETTING,
 			'cache_tools'
@@ -193,8 +192,6 @@ class Settings extends Singleton {
 	 */
 	public function menus_intro() {
 		echo wp_kses_post( '<hr>' );
-		echo wp_kses_post( 'Menus are cached by their displayed location.<br>Menu locations are determined by each theme, and user-created menus are assigned to these locations.', 'ms-wpsm' );
-
 	}
 
 	/**
@@ -210,14 +207,22 @@ class Settings extends Singleton {
 		if ( empty( $menus ) || ! is_array( $menus ) ) {
 			return;
 		}
-
-		foreach ( $menus as $location => $menu ) :
-			$item_name  = $field_name . '[' . $location . ']';
-			$item_value = isset( $value[ $location ] ) ? 1 : 0;
-			?>
-			<input type="checkbox" name="<?php echo esc_attr( $item_name ); ?>" value="1" <?php checked( $item_value, 1 ); ?>><?php echo esc_html( ucwords( $location ) ); ?><br>
+		?>
+		<fieldset>
 			<?php
-		endforeach;
+			foreach ( $menus as $location => $description ) :
+				$item_name  = $field_name . '[' . $location . ']';
+				$item_value = isset( $value[ $location ] ) ? 1 : 0;
+				?>
+				<label>
+					<input type="checkbox" name="<?php echo esc_attr( $item_name ); ?>" value="1" <?php checked( $item_value, 1 ); ?>><?php echo esc_html( $description ); ?>
+				</label>
+				<br>
+				<?php
+			endforeach;
+			?>
+		</fieldset>
+		<?php
 	}
 	/**
 	 * Intro text to the Cache Config settings section.
@@ -233,15 +238,17 @@ class Settings extends Singleton {
 		$value      = $this->get_value( 'caching_method' );
 		$field_name = self::OPTION_NAME . '[caching_method]';
 		?>
-		<select id="caching-method-select" name="<?php echo esc_attr( $field_name ); ?>">
-			<?php foreach ( $this->plugin->cache_methods as $label => $class_name ) : ?>
-				<option value="<?php echo esc_attr( $class_name ); ?>" <?php selected( $class_name, $value ); ?>><?php echo esc_html( $label ); ?></option>
-			<?php endforeach; ?>
-		</select>
-		<br>
-		<p class="description">
-			<?php esc_html_e( 'Default is "Object Cache."', 'ms-wpsm' ); ?>
-		</p>
+		<fieldset>
+			<select id="caching-method-select" name="<?php echo esc_attr( $field_name ); ?>">
+				<?php foreach ( $this->plugin->cache_methods as $label => $class_name ) : ?>
+					<option value="<?php echo esc_attr( $class_name ); ?>" <?php selected( $class_name, $value ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<br>
+			<p class="description">
+				<?php esc_html_e( 'Default is "Object Cache."', 'ms-wpsm' ); ?>
+			</p>
+		</fieldset>
 		<?php
 	}
 
@@ -256,14 +263,17 @@ class Settings extends Singleton {
 		$field_name = self::OPTION_NAME . '[html_settings]';
 
 		?>
-		<p>
-			<?php esc_html_e( 'Cache File Path', 'ms-wpsm' ); ?><br>
-			<input class="widefat" type="text" name="<?php echo esc_attr( $field_name . '[file_path]' ); ?>" placeholder="<?php echo esc_html( WP_CONTENT_DIR ); ?>" value="<?php echo esc_html( $file_path ); ?>"/>
-		</p>
-		<p>
-			<?php esc_html_e( 'Cache Directory Name', 'ms-wpsm' ); ?><br>
-			<input type="text" name="<?php echo esc_attr( $field_name . '[dir_name]' ); ?>" placeholder="cache" value="<?php echo esc_html( $dir_name ); ?>"/>
-		</p>
+		<fieldset>
+			<label>
+				<?php esc_html_e( 'Cache File Path', 'ms-wpsm' ); ?><br>
+				<input type="text" name="<?php echo esc_attr( $field_name . '[file_path]' ); ?>" placeholder="<?php echo esc_html( WP_CONTENT_DIR ); ?>" value="<?php echo esc_html( $file_path ); ?>"/>
+			</label>
+			<br><br>
+			<label>
+				<?php esc_html_e( 'Cache Directory Name', 'ms-wpsm' ); ?><br>
+				<input type="text" name="<?php echo esc_attr( $field_name . '[dir_name]' ); ?>" placeholder="cache" value="<?php echo esc_html( $dir_name ); ?>"/>
+			</label>
+		</fieldset>
 		<?php
 	}
 
@@ -276,11 +286,13 @@ class Settings extends Singleton {
 
 		// Max is one week.
 		?>
-		<input name="<?php echo esc_attr( $field_name ); ?>" type="number" min="1" max="10080" value="<?php echo esc_attr( $value ); ?>" placeholder="60">
-		<br>
-		<p class="description">
-			<?php esc_html_e( 'Defaults to 60 minutes.', 'ms-wpsm' ); ?>
-		</p>
+		<fieldset>
+			<input class="small-text" name="<?php echo esc_attr( $field_name ); ?>" type="number" min="1" max="10080" value="<?php echo esc_attr( $value ); ?>" placeholder="60">
+			<br>
+			<p class="description">
+				<?php esc_html_e( 'Defaults to 60 minutes.', 'ms-wpsm' ); ?>
+			</p>
+		</fieldset>
 		<?php
 	}
 
@@ -293,9 +305,17 @@ class Settings extends Singleton {
 		$field_name = self::OPTION_NAME . '[exceptions]';
 		?>
 		<p><?php esc_html_e( 'Do not display cached menus to:', 'ms-wpsm' ); ?></p>
-		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="logged_in" <?php checked( $value, 'logged_in' ); ?>><?php esc_html_e( 'Logged-in Users', 'ms-wpsm' ); ?><br>
-		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="admins" <?php checked( $value, 'admins' ); ?>><?php esc_html_e( 'Administrators & Editors', 'ms-wpsm' ); ?><br><br>
-		<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="0" <?php checked( $value, 0 ); ?>><?php esc_html_e( 'Display cached menus to everyone', 'ms-wpsm' ); ?><br>
+		<fieldset>
+			<label>
+				<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="logged_in" <?php checked( $value, 'logged_in' ); ?>><?php esc_html_e( 'Logged-in Users', 'ms-wpsm' ); ?>
+			</label><br>
+			<label>
+				<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="admins" <?php checked( $value, 'admins' ); ?>><?php esc_html_e( 'Administrators & Editors', 'ms-wpsm' ); ?>
+			</label><br>
+			<label>
+				<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="0" <?php checked( $value, 0 ); ?>><?php esc_html_e( 'Display cached menus to everyone', 'ms-wpsm' ); ?>
+			</label>
+		</fieldset>
 		<?php
 	}
 
@@ -312,15 +332,11 @@ class Settings extends Singleton {
 	public function disable_caching_render() {
 		$value      = (bool) $this->get_value( 'disable_caching' );
 		$field_name = self::OPTION_NAME . '[disable_caching]';
-		$text       = ( ! empty( $value ) ) ? __( 'Caching is disabled.', 'ms-wpsm' ) : __( 'Caching is enabled.', 'ms-wpsm' );
-		$text_color = ( ! empty( $value ) ) ? '#b32d2e' : '#00a32a';
 
 		?>
-		<p id="disable-caching" class="description" style="color: <?php echo esc_attr( $text_color ); ?>">
-			<strong><?php echo esc_html( $text ); ?></strong>
-		</p>
-		<input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $value, 1 ); ?>><?php esc_html_e( 'Disable Caching?', 'ms-wpsm' ); ?><br>
-
+		<fieldset id="disable-caching">
+			<input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $value, 1 ); ?>><?php esc_html_e( 'Disable Caching?', 'ms-wpsm' ); ?><br>
+		</fieldset>
 		<?php
 	}
 
@@ -330,7 +346,7 @@ class Settings extends Singleton {
 	public function empty_all_caches_render() {
 		$field_name = self::OPTION_NAME . '[empty_all_caches]';
 		?>
-		<button type="button" class="button button-secondary" name="<?php echo esc_attr( $field_name ); ?>"><?php esc_html_e( 'Empty All Caches Now', 'ms-wpsm' ); ?></button>
+		<button type="button" class="button button-secondary" name="<?php echo esc_attr( $field_name ); ?>"><?php esc_html_e( 'Empty All Caches', 'ms-wpsm' ); ?></button>
 		<?php
 	}
 
