@@ -1,4 +1,15 @@
-vendor
+/vendor/
+/.idea
+/.vagrant
+/*.sql
+/*.xml
+Homestead.json
+Homestead.yaml
+*.log
+.env
+.DS_Store
+.rej
+.nova
 
-# VS Code
-*.code-workspace
+!phpcs.xml
+!/phpunit.xml

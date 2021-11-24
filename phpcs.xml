@@ -32,7 +32,7 @@
 	<!-- Allow for common global prefixes used in Mindsize code. -->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
-			<property name="prefixes" type="array" value="wp_starter_theme,ms_,_ms,mindsize" />
+			<property name="prefixes" type="array" value="wp_static_menus, wp_starter_theme,ms_,_ms,mindsize" />
 		</properties>
 
 		<!-- In practice, partials should be loaded outside of the global namespace with get_template_part(). -->

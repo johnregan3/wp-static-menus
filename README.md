@@ -4,26 +4,24 @@
 **Author:** [Mindsize](https://mindsize.me)<br>
 **Version**: 0.1.0
 
-WordPress plugin for caching menus and serving them statically. Based upon [WP Static Menus by Liquid Web](https://github.com/liquidweb/wp-static-menus).
+WordPress plugin for caching menus and serving them statically. Based upon [WP Static Menus by Liquid Web](https://github.com/liquidweb/wp-static-menus).  It requires the WP Fragment Cache plugin to run.
 
-Important note: this plugin caches menus by Menu Location registered in the theme, not individual user-created Nav Menus.
+This plugin caches menus by menu Theme Location (the ones registered in the theme), not the individual user-created nav venus.
+
+It also uses HTML files located in `wp-content/cache/wp-static-menus/` to store each menu's markup.
 
 ## Usage
 
-After installing and activating the plugin, navigate to Tools > WP Static Menus in the WP Admin Menu. Here, select Menu Location(s) to be cached.
+Upload the plugin, then from within its directory run `composer install`.
+
+After activating the plugin, navigate to `Tools > WP Static Menus` in the WP Admin Menu. Then select the menu location(s) to be cached.
 
 From here, the plugin can get to work with no other required changes to the configuration.
 
-### Configuration Options
+## Tools
 
-On this page you can also select how the cache is to be stored.  The defaults are Object Cache, HTML File(s), or Transients.
+On this same settings page you can also select to whom static menus should _not_ be served (e.g., logged-in users, Adminstrators & Editors).  This is useful if your menus appear differently for different users (like containing a user profile link, for example).  Also, disabling cached menus for Admins allows them to see edits immediately.
 
-Along with selecting the cache storage method, you can choose the length to hold the cache.
+The Tools section includes a checkbox to quickly disable all caching, as well as a button to empty all caches.
 
-Finally, you can also select to whom static menus should _not_ be served (e.g., logged-in users, Adminstrators & Editors).
-
-The Tools section on the Settings Page includes a quick checkbox to disable all caching, as well as a button to immediately empty all caches.
-
-## Filters
-
-## Adding Custom Cache Storage Methods
+Finally, the plugin can display a handy button in the WP Admin Bar for flushing the cache files.

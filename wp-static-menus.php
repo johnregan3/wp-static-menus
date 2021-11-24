@@ -1,13 +1,13 @@
 <?php
 /**
- * Plugin Name: WP Static Menus
- * Description: Improve page load times by serving static nav menus.
+ * Plugin Name: Mindsize - WP Static Menus
+ * Description: Improve page load times by serving static navigation menus.
  * Version:     0.1.0
  * Author:      Mindsize
  * Author URI:  http://mindsize.me/
  * License:     GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: ms-wpsm
+ * Text Domain: wp-static-menus
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,48 +22,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * @package   Mindsize/WPSM
- * @author    Mindsize
- * @copyright Copyright (c) 2021, Mindsize, LLC.
+ * @package   Mindsize/WPStaticMenus
+ * @author    Mindsize <info@mindsize.me>
+ * @copyright Copyright (c) 22021, Mindsize, LLC.
  * @license   http://www.gnu.org/licenses/gpl-2.0.html GNU General Public License v2.0
  */
 
-/**
- * Autoload Plugin classes.
- *
- * Loads classes in the inc/ directory whose
- * file names are prefixed with "class-" and also contain the
- * "Mindsize\WPSM" namespace.
- *
- * @since 0.1.0
- *
- * @param string $class A Class name.
- */
-function ms_wpsm_autoload( $class ) {
-	$class = strtolower( $class );
-	if ( false === strpos( $class, 'mindsize\wpsm' ) ) {
-		return;
-	}
+use Mindsize\WPStaticMenus\Plugin;
 
-	$class = str_replace( 'mindsize\\wpsm\\', '', $class );
-	$class = str_replace( '\\', '/', $class );
-	$class = str_replace( '_', '-', $class );
-	$path  = plugin_dir_path( __FILE__ ) . '/inc/class-' . $class . '.php';
+$autoloader = dirname( __FILE__ ) . '/vendor/autoload.php';
 
-	if ( file_exists( $path ) && is_readable( $path ) ) {
-		include $path;
-	}
+if ( file_exists( $autoloader ) ) {
+	require_once $autoloader;
 }
-spl_autoload_register( 'ms_wpsm_autoload' );
 
 /**
- * Kick things off.
+ * Get an instance of the Menu Cache plugin.
  *
- * @since 0.1.0
- *
- * @action plugins_loaded
+ * @return Plugin
  */
-function ms_wpsm_load() {
-	Mindsize\WPSM\Plugin::get_instance();
+function ms_wp_static_menus() : Plugin {
+	static $instance;
+
+	if ( empty( $instance ) ) {
+		$instance = new Plugin();
+	}
+
+	return $instance;
 }
-add_action( 'plugins_loaded', 'ms_wpsm_load' );
+
+add_action(
+	'plugins_loaded',
+	function() {
+		ms_wp_static_menus()->init();
+	}
+);
