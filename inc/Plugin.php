@@ -58,6 +58,8 @@ class Plugin {
 		$this->set_properties();
 		$this->settings->init();
 
+		add_filter( 'plugin_action_links_wp-static-menus/wp-static-menus.php', [ $this->settings, 'settings_link' ] );
+
 		// Flush caches.
 		add_action( 'wp_update_nav_menu', [ $this, 'flush_caches' ] );
 

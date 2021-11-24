@@ -81,12 +81,39 @@ class Settings {
 	}
 
 	/**
+	 * Print direct link to the Settings Page from the WP Plugins screen.
+	 *
+	 * @filter plugin_action_links_
+	 *
+	 * @param  array $links Array of links for the Plugins screen.
+	 *
+	 * @return array        Updated array of links.
+	 */
+	public function settings_link( $links ) {
+		return array_merge(
+			[
+				'settings' => '<a href="' . self::settings_url() . '">' . __( 'Settings', 'wp-static-menus' ) . '</a>',
+			],
+			$links
+		);
+	}
+
+	/**
+	 * Return the Settings Page URL.
+	 *
+	 * @return string The Settings Page URL.
+	 */
+	private static function settings_url() {
+		return admin_url( 'tools.php?page=' . self::SETTING );
+	}
+
+	/**
 	 * Create the Empty Cache URL.
 	 *
 	 * @return string The Nonce URL.
 	 */
 	private static function empty_cache_url() {
-		return wp_nonce_url( admin_url( 'tools.php?page=' . self::SETTING . '&flush_cache=1' ), self::NONCE_ACTION_FLUSH, self::NONCE_NAME );
+		return wp_nonce_url( add_query_arg( 'flush_cache', '1', self::settings_url() ), self::NONCE_ACTION_FLUSH, self::NONCE_NAME );
 	}
 
 	/**
@@ -376,12 +403,15 @@ class Settings {
 	}
 
 	/**
-	 * Caching disabled admin notice.
+	 * Caching Disabled admin notice.
+	 *
+	 * Appears on both the Plugin Settings page and the Appearance > Menus Admin Screen.
 	 *
 	 * @action admin_notices
 	 */
 	public function admin_notice_disabled() {
-		if ( 'tools_page_' . self::SETTING !== get_current_screen()->id ) {
+		$screen = get_current_screen()->id;
+		if ( 'nav-menus' !== $screen && 'tools_page_' . self::SETTING !== $screen ) {
 			return;
 		}
 
@@ -391,7 +421,7 @@ class Settings {
 		?>
 			<div class="notice notice-error">
 				<?php // translators: link to "disable-caching" ID on the settings page. ?>
-				<p><?php echo wp_kses_post( sprintf( __( 'Menu Caching is currently <a href="%s">Disabled</a>.', 'wp-static-menus' ), '#disable-caching' ) ); ?></p>
+				<p><?php echo wp_kses_post( sprintf( __( 'Menu Caching is currently <a href="%s">Disabled</a>.', 'wp-static-menus' ), self::settings_url() . '#disable-caching' ) ); ?></p>
 			</div>
 		<?php
 	}
