@@ -1,0 +1,38 @@
+{
+  "name": "mindsize/wp-static-menus",
+  "description": "Improve page load times by serving static nav menus.",
+  "homepage": "http://github.com/Mindsize/ms-wc-add-to-cart-form-cache",
+  "keywords": [
+    "wordpress",
+    "menu",
+    "cache"
+  ],
+  "authors": [
+    {
+      "name": "Mindsize",
+      "email": "info@mindsize.me",
+      "homepage": "http://mindsize.me",
+      "role": "Developer"
+    },
+    {
+      "name": "Patrick Garman",
+      "email": "patrick@mindsize.com",
+      "homepage": "http://mindsize.com",
+      "role": "Developer"
+    },
+    {
+      "name": "John Regan",
+      "email": "john.regan@mindsize.com",
+      "homepage": "http://mindsize.com",
+      "role": "Developer"
+    }
+  ],
+  "license": "GPL-2.0",
+  "version": "1.0.1",
+  "type": "wordpress-plugin",
+  "autoload": {
+    "psr-4": {
+        "Mindsize\\WPStaticMenus\\": "inc/"
+    }
+  }
+}
