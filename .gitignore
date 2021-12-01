@@ -10,6 +10,10 @@ Homestead.yaml
 .DS_Store
 .rej
 .nova
+*.cache
+*.code-workspace
 
 !phpcs.xml
 !/phpunit.xml
+
+

@@ -24,7 +24,7 @@
  *
  * @package   Mindsize/WPStaticMenus
  * @author    Mindsize <info@mindsize.me>
- * @copyright Copyright (c) 22021, Mindsize, LLC.
+ * @copyright Copyright (c) 2021, Mindsize, LLC.
  * @license   http://www.gnu.org/licenses/gpl-2.0.html GNU General Public License v2.0
  */
 

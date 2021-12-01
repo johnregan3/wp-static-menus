@@ -54,10 +54,10 @@ class Cacher extends \WP_Fragment_HTML_Cache {
 	}
 
 	public function get_cache_start_comment() {
-		return __( 'Start WP Menu Cache', 'wp-static-menus' );
+		return __( 'Start WP Static Menus', 'wp-static-menus' );
 	}
 
 	public function get_cache_close_comment() {
-		return __( 'End WP Menu Cache', 'wp-static-menus' );
+		return __( 'End WP Static Menus', 'wp-static-menus' );
 	}
 }
