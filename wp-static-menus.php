@@ -30,10 +30,10 @@
 
 use Mindsize\WPStaticMenus\Plugin;
 
-$autoloader = dirname( __FILE__ ) . '/vendor/autoload.php';
+$ms_autoloader = dirname( __FILE__ ) . '/vendor/autoload.php';
 
-if ( file_exists( $autoloader ) ) {
-	require_once $autoloader;
+if ( file_exists( $ms_autoloader ) ) {
+	require_once $ms_autoloader;
 }
 
 /**
@@ -45,15 +45,36 @@ function ms_wp_static_menus() : Plugin {
 	static $instance;
 
 	if ( empty( $instance ) ) {
-		$instance = new Plugin();
+		if ( class_exists( 'Mindsize\WPStaticMenus\Plugin' ) ) {
+			$instance = new Plugin();
+		}
 	}
 
 	return $instance;
 }
 
+// Load the plugin.
 add_action(
 	'plugins_loaded',
 	function() {
-		ms_wp_static_menus()->init();
+		try {
+			ms_wp_static_menus()->init();
+		} catch ( \TypeError $e ) {
+
+			// Class Plugin is not instantiated, most likely because the autoloader hasn't been set up.
+			add_action(
+				'admin_notices',
+				function() {
+					if ( 'plugins' !== get_current_screen()->id ) {
+						return;
+					}
+					?>
+					<div class="error notice">
+						<p><?php echo wp_kses_post( __( 'WP Static Menus plugin isn\'t working. Did you run <code>composer install</code> after it was downloaded?', 'wp-static-menus' ) ); ?></p>
+					</div>
+					<?php
+				}
+			);
+		}
 	}
 );
