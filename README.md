@@ -10,11 +10,13 @@ This plugin caches menus by menu Theme Location (the ones registered in the them
 
 It also uses HTML files located in `wp-content/cache/wp-static-menus/` to store each menu's markup.
 
+## Installation
+
+Upload the plugin, then from within its directory run `composer install`.  Then activate the plugin as you would any other from within the WP Admin.
+
 ## Usage
 
-Upload the plugin, then from within its directory run `composer install`.
-
-After activating the plugin, navigate to `Tools > WP Static Menus` in the WP Admin Menu. Then select the menu location(s) to be cached.
+Navigate to `Tools > WP Static Menus` in the WP Admin Menu. Then select the menu location(s) to be cached.
 
 From here, the plugin can get to work with no other required changes to the configuration.
 
@@ -30,6 +32,6 @@ Finally, the plugin can display a handy button in the WP Admin Bar for flushing 
 
 ### Unit Testing
 
-For the sake of simplicity, this plugin does not use the full WP Unit Testing suite of tools. When `composer install` is initially run, a standalone version of PHPUnit is added to the plugin.
+For the sake of simplicity, this plugin does not use the full [WP Plugin Integration Tests](https://make.wordpress.org/cli/handbook/misc/plugin-unit-tests/) suite of tools. When `composer install` is initially run, a standalone version of PHPUnit is added to the plugin.
 
 To run the unit tests, simply run `vendor/bin/phpunit` from inside the plugin's directory and PHPUnit will go to work.
