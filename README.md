@@ -18,9 +18,9 @@ Upload the plugin, then from within its directory run `composer install`.  Then 
 
 Navigate to `Tools > WP Static Menus` in the WP Admin Menu. Then select the menu location(s) to be cached.
 
-From here, the plugin can get to work with no other required changes to the configuration.
+![Settings Page Screenshot](https://github.com/johnregan3/wp-static-menus/blob/repo-media/readme-settings-screenshot.png?raw=true)
 
-### Plugin Tools
+From here, the plugin can get to work with no other required changes to the configuration.
 
 On this same settings page you can also select to whom static menus should _not_ be served (e.g., logged-in users, Adminstrators & Editors).  This is useful if your menus appear differently for different users (like containing a user profile link, for example).  Also, disabling cached menus for Admins allows them to see edits immediately.
 
