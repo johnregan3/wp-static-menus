@@ -55,30 +55,33 @@ function ms_wp_static_menus() : Plugin {
 add_action(
 	'plugins_loaded',
 	function() {
-
 		try {
 			ms_wp_static_menus()->init();
 		} catch ( \TypeError $e ) {
 			/*
 			 * A TypeError is thrown if ms_static_menus doesn't return an instance of Plugin.
-			 * This error most likely means that the autolaoder hasn't been set up using `composer install`.
-			 *
-			 * Let's add a warning to the Plugins and Nav Menus admin pages.
+			 * This error most likely means that the autoloader isn't found.
 			 */
-			add_action(
-				'admin_notices',
-				function() {
-					$screen = get_current_screen()->id;
-					if ( 'nav-menus' !== $screen && 'plugins' !== $screen ) {
-						return;
-					}
-					?>
-					<div class="error notice">
-						<p><?php echo wp_kses_post( __( 'WP Static Menus plugin isn\'t working. Did you run <code>composer install</code> after it was downloaded?', 'wp-static-menus' ) ); ?></p>
-					</div>
-					<?php
-				}
-			);
+			add_action( 'admin_notices', 'ms_static_menus_admin_message' );
 		}
 	}
 );
+
+/**
+ * Render admin notice message when plugin fails to load.
+ *
+ * This message displays when the plugin hasn't been set up using `composer install`.
+ *
+ * This only appears on the Nav Menus and Plugins Admin pages.
+ */
+function ms_static_menus_admin_message() {
+	$screen = get_current_screen()->id;
+	if ( 'nav-menus' !== $screen && 'plugins' !== $screen ) {
+		return;
+	}
+	?>
+	<div class="error notice">
+		<p><?php echo wp_kses_post( __( 'WP Static Menus plugin isn\'t working. Did you run <code>composer install</code> after it was downloaded?', 'wp-static-menus' ) ); ?></p>
+	</div>
+	<?php
+}
