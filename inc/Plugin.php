@@ -113,6 +113,7 @@ class Plugin {
 
 		remove_filter( 'pre_wp_nav_menu', [ $this, 'pre_wp_nav_menu' ], 20, 2 );
 
+		// Must wrap $args in an array due to the way \WP_Fragment_Cache::do() is written vs. the wp_nav_menu filter.
 		$markup = $this->cacher->do( 'wp_nav_menu', [ $args ], false );
 
 		add_filter( 'pre_wp_nav_menu', [ $this, 'pre_wp_nav_menu' ], 20, 2 );
@@ -222,6 +223,8 @@ class Plugin {
 	 *
 	 * These are set by roles (not capabilities) to simplify the
 	 * settings for the user.
+	 *
+	 * @todo Add filter for admin roles.
 	 *
 	 * @return bool If the cached menu should be shown.
 	 */

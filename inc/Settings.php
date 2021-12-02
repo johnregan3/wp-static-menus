@@ -160,7 +160,13 @@ class Settings {
 	 * @action admin_init
 	 */
 	public function register_settings() {
-		register_setting( self::SETTING, self::OPTION_NAME );
+		register_setting(
+			self::SETTING,
+			self::OPTION_NAME,
+			[
+				'sanitize_callback' => [ $this, 'sanitize_settings' ],
+			]
+		);
 
 		add_settings_section(
 			'config',
@@ -183,6 +189,21 @@ class Settings {
 			[ $this, 'exceptions_render' ],
 			self::SETTING,
 			'config'
+		);
+
+		add_settings_section(
+			'overrides',
+			esc_html__( 'Overrides', 'wp-static-menus' ),
+			[ $this, 'overrides_intro' ],
+			self::SETTING
+		);
+
+		add_settings_field(
+			'cache_path',
+			__( 'Cache Path', 'wp-static-menus' ) . '<p style="font-weight: normal;">Path to where the cache files are stored inside of /wp-content/</p>',
+			[ $this, 'cache_path_render' ],
+			self::SETTING,
+			'overrides'
 		);
 
 		add_settings_section(
@@ -285,6 +306,30 @@ class Settings {
 	}
 
 	/**
+	 * Intro text to the Overrides section.
+	 */
+	public function overrides_intro() {
+		echo wp_kses_post( '<hr>' );
+	}
+
+	/**
+	 * Render the Cache Path field.
+	 */
+	public function cache_path_render() {
+		$value      = $this->get_value( 'cache_path' );
+		$field_name = self::OPTION_NAME . '[cache_path]';
+
+		?>
+		<fieldset id="cache-path">
+			<input class="widefat" style="width: 500px; max-width: 100%;" type="text" name="<?php echo esc_attr( $field_name ); ?>" value="<?php echo esc_html( $value ); ?>" placeholder="/cache/wp-static-menus/" /><br>
+		</fieldset>
+		<p class="description">
+			<?php echo wp_kses_post( __( 'This path can be completely overriden by filters.<br/>If this setting is changed, the current cache directory will not be deleted.<br/>Defaults to cache/wp-static-menus/', 'wp-static-menus' ) ); ?>
+		</p>
+		<?php
+	}
+
+	/**
 	 * Intro text to the Tools section.
 	 */
 	public function cache_tools_intro() {
@@ -345,6 +390,36 @@ class Settings {
 				</form>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Sanitize our settings option.
+	 *
+	 * The real purpose of this is to clear the cache_path if it is changed.
+	 *
+	 * @param array $input The option to be saved.
+	 *
+	 * @return array The sanitized option.
+	 */
+	public function sanitize_settings( $input ) {
+
+		// If cache_path has changed, empty the current cache_path directory.
+		$existing_cache_path = $this->get_value( 'cache_path' );
+		$new_cache_path      = ( isset( $input['cache_path'] ) ) ? $input['cache_path'] : false;
+		if ( $new_cache_path !== $existing_cache_path ) {
+			$cacher = new Cacher();
+			$cacher->clear_cache();
+		}
+
+		// Sanitize the cache_path value.
+		if ( isset( $input['cache_path'] ) ) {
+			$path = wp_normalize_path( $input['cache_path'] );
+
+			// Wp_normalize_path allows slashes at the start of the string.
+			$input['cache_path'] = ltrim( $path, '/' );
+		}
+
+		return $input;
 	}
 
 	/**
