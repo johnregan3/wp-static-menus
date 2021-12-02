@@ -185,39 +185,6 @@ class Plugin {
 	}
 
 	/**
-	 * Filter the Cache Length Setting.
-	 *
-	 * @todo Setting saves in Minutes, so need to multiply by 60.
-	 *
-	 * @return int|string Cache length, in seconds.
-	 */
-	public function get_cache_length() {
-		$cache_length = $this->settings->get_value( 'cache_length' );
-		if ( empty( $cache_length ) || ! is_numeric( $cache_length ) ) {
-			// Defaults to 60 min if setting is empty.
-			$cache_length = 60;
-		}
-		$cache_length = intval( $cache_length ) * 60;
-
-		/**
-		 * Override the caching length from the plugin settings.
-		 *
-		 * @todo add $menu_args to this filter.
-		 *
-		 * @param string $method The cache length.
-		 *
-		 * @return string The desired cache length, in seconds.
-		 */
-		$filtered_cache_length = apply_filters( 'wp_static_menus_cache_length', $cache_length );
-
-		if ( ! empty( $filtered_cache_length ) && is_numeric( $filtered_cache_length ) ) {
-			return $filtered_cache_length;
-		}
-
-		return $cache_length;
-	}
-
-	/**
 	 * If the current user should be shown the cached menu.
 	 *
 	 * These are set by roles (not capabilities) to simplify the

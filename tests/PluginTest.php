@@ -39,28 +39,4 @@ class PluginTest extends WPStaticMenusTests\TestCase {
 			'❗️Plugin property $locations is not an array'
 		);
 	}
-
-	public function test_get_cache_length() {
-
-		$cache_lengths = [
-			3000,
-			999999999999999999,
-			0,
-			false,
-			'string',
-			[],
-			new stdClass(),
-		];
-
-		foreach ( $cache_lengths as $input ) {
-			add_filter( 'wp_static_menus_cache_length', function( $cache_length ) use ( $input ) {
-				return $input;
-			}, 9999 );
-
-			$this->assertTrue(
-				is_numeric( $this->plugin->get_cache_length() ),
-				'❗️Cache Length is not numeric: cache_length = "' . json_encode( $input ) . '"'
-			);
-		}
-	}
 }
