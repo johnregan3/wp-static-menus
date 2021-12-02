@@ -44,10 +44,8 @@ if ( file_exists( $ms_autoloader ) ) {
 function ms_wp_static_menus() : Plugin {
 	static $instance;
 
-	if ( empty( $instance ) ) {
-		if ( class_exists( 'Mindsize\WPStaticMenus\Plugin' ) ) {
-			$instance = new Plugin();
-		}
+	if ( empty( $instance ) && class_exists( 'Mindsize\WPStaticMenus\Plugin' ) ) {
+		$instance = new Plugin();
 	}
 
 	return $instance;
@@ -57,15 +55,21 @@ function ms_wp_static_menus() : Plugin {
 add_action(
 	'plugins_loaded',
 	function() {
+
 		try {
 			ms_wp_static_menus()->init();
 		} catch ( \TypeError $e ) {
-
-			// Class Plugin is not instantiated, most likely because the autoloader hasn't been set up.
+			/*
+			 * A TypeError is thrown if ms_static_menus doesn't return an instance of Plugin.
+			 * This error most likely means that the autolaoder hasn't been set up using `composer install`.
+			 *
+			 * Let's add a warning to the Plugins and Nav Menus admin pages.
+			 */
 			add_action(
 				'admin_notices',
 				function() {
-					if ( 'plugins' !== get_current_screen()->id ) {
+					$screen = get_current_screen()->id;
+					if ( 'nav-menus' !== $screen && 'plugins' !== $screen ) {
 						return;
 					}
 					?>
