@@ -4,6 +4,8 @@
  *
  * Renders the settings page and saves settings into an option.
  *
+ * @todo Testing: Consider ways to set/get option value when this is a singleton.
+ *
  * @package Mindsize\WPStaticMenus
  * @since   0.1.0
  * @author  Mindsize <info@mindsize.me>
