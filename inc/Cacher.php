@@ -57,7 +57,7 @@ class Cacher extends \WP_Fragment_HTML_Cache {
 		 */
 		$filtered_file_name = apply_filters( 'wp_static_menus_cache_file_name', $file_name, $conditions );
 
-		$file_name = ( ! empty( $filtered_file_name ) && is_string( $file_name ) ) ? $filtered_file_name : $file_name;
+		$file_name = ( ! empty( $filtered_file_name ) && is_string( $filtered_file_name ) ) ? $filtered_file_name : $file_name;
 		$path      = $this->get_cache_path();
 
 		return trailingslashit( $path ) . sanitize_title( $file_name ) . '.html';
@@ -136,65 +136,5 @@ class Cacher extends \WP_Fragment_HTML_Cache {
 			return;
 		}
 		return __( 'End WP Static Menus', 'wp-static-menus' );
-	}
-
-	/**
-	 * Remove the current cache files and directory.
-	 *
-	 * This is necessary as $this->clear_cache() only clears files
-	 * within a directory. This method is used to delete both the directory and files.
-	 *
-	 * Example:
-	 * If the existing cache path is
-	 * /cache/wp-static-menus/
-	 * then $this->clear_cache() will only delete *files* from within the
-	 * /cache/wp-static-menus/ directory.
-	 *
-	 * However, if the new path is
-	 * /cache/my-menus/
-	 * we need to delete everything, including the former directory (/cache/wp-static-menus/).
-	 *
-	 * Note that (in this example) we must be sure to preserve the /cache/ directory.
-	 *
-	 * @param string $new_path The path to be updated.
-	 */
-	public function delete_directory_on_update( $new_path ) {
-		// The existing (former) path.
-		$existing_path = $this->get_cache_path();
-
-		/*
-		 * Find the parts that the two paths have in common
-		 * so we don't delete a common (grand)parent cache directory.
-		 * This directory could possibly be containing other files cached
-		 * by the user.
-		 *
-		 * wp_normalize_path() allows for double-slashes at the start of the path.
-		 * These are important here, so don't try to strip them out.
-		 */
-		$existing_directories = explode( '/', wp_normalize_path( $existing_path ) );
-		$new_directores       = explode( '/', wp_normalize_path( $new_path ) );
-
-		/*
-		 * Returns common directory, only if they match in a specific order.
-		 *
-		 * We don't want to just delete the last directory in the existing path.
-		 * If the existing path was /caches/, and the new one is /caches/menus,
-		 *
-		 * This means that if the existing path is
-		 * /cache/menus/
-		 * and the new path is
-		 * /cache/mysite/menus/
-		 * we will delete /cache/menus/, but not the entire /cache/ directory.
-		 */
-		$common_directories = array_intersect_assoc( $existing_path_pieces, $new_path_pieces );
-
-		if ( ! empty( $common_directories ) ) {
-			$delete_path = implode( '/', $common_directories );
-		}
-
-		return $delete_path;
-
-		// $this->ensure_directory_exists( $delete_path );
-		// $this->delete_directory_contents( $delete_path );
 	}
 }
