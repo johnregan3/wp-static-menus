@@ -1,12 +1,13 @@
 <?xml version="1.0"?>
 <ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Mindsize" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/squizlabs/PHP_CodeSniffer/master/phpcs.xsd">
 	<description>The Mindsize PHP coding standard.</description>
-
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 	<exclude-pattern>*/tests/*</exclude-pattern>
 	<exclude-pattern>*.js</exclude-pattern>
 	<exclude-pattern>*.css</exclude-pattern>
+
+	<arg name="colors"/>
 
 	<!-- Use the WordPress ruleset, with some customizations. -->
 	<rule ref="WordPress">
@@ -33,11 +34,9 @@
 	<!-- Allow for common global prefixes used in Mindsize code. -->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
-			<property name="prefixes" type="array" value="wp_static_menus, wp_starter_theme,ms_,_ms,mindsize" />
+			<property name="prefixes" type="array" value="wp_static_menus,ms_,_ms,mindsize" />
 		</properties>
 
-		<!-- In practice, partials should be loaded outside of the global namespace with get_template_part(). -->
-		<exclude-pattern>themes(/vip)?/[^/]+/template-parts/</exclude-pattern>
 		<exclude-pattern>vendor/</exclude-pattern>
 	</rule>
 

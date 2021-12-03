@@ -34,4 +34,8 @@ Finally, the plugin can display a handy button in the WP Admin Bar for flushing 
 
 For the sake of simplicity, this plugin does not use the full [WP Plugin Integration Tests](https://make.wordpress.org/cli/handbook/misc/plugin-unit-tests/) suite of tools. When `composer install` is initially run, a standalone version of PHPUnit is added to the plugin.
 
-To run the unit tests, simply run `vendor/bin/phpunit` from inside the plugin's directory and PHPUnit will go to work.
+To run the unit tests, simply run `composer test` from inside the plugin's directory and PHPUnit will go to work.
+
+### Coding Standards
+
+PHP Coding Standards (phpcs) and PHP Code Beautifier and Fixer (phpcbf) are also installed.  To run these, use `composer phpcs` and `composer phpcbf` respectively.  This automatically includes WordPress Coding Standards and Mindsize's custom standards file (`phpcs.xml.dist`).
