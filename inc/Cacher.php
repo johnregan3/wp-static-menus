@@ -75,26 +75,10 @@ class Cacher extends \WP_Fragment_HTML_Cache {
 	public function get_cache_path( $append = null ) {
 		$path = trailingslashit( WP_CONTENT_DIR . '/cache/' . $this->slug );
 
-		/*
-		 * Get override path from settings.
-		 *
-		 * This still uses the WP_CONTENT_DIR to prevent unintended paths by less-advanced users.
-		 *
-		 * This path can be completely overriden using the wp_static_menus_cache_path filter below.
-		 */
-		$settings_path = Settings::get_instance()->get_value( 'cache_path' );
-		if ( ! empty( $settings_path ) && is_string( $settings_path ) ) {
-
-			// Normalize the settings path.
-			$settings_path = wp_normalize_path( $settings_path );
-
-			// Wp_normalize_path allows slashes at the start of the string.
-			$settings_path = ltrim( $settings_path, '/' );
-			$path          = trailingslashit( WP_CONTENT_DIR ) . trailingslashit( $settings_path );
-		}
-
 		/**
 		 * Filter the cache directory path.
+		 *
+		 * Be careful, because this can be *very* destructive!
 		 *
 		 * Defaults to 'wp-content/cache/wp-static-menus/'.
 		 *
