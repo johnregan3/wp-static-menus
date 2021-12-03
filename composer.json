@@ -43,10 +43,12 @@
   },
   "scripts": {
       "test": "phpunit",
-      "phpcs": "phpcs -s -p .",
-      "phpcbf": "phpcbf"
+      "lint": "phpcs -s -p .",
+      "fix": "phpcbf"
   },
   "scripts-descriptions": {
-    "test": "✅ Run PHPUnit"
+    "test": "👉 Run PHPUnit",
+    "lint": "👉 Run PHPCS",
+    "fix": "👉 Run PHPCBF"
   }
 }
