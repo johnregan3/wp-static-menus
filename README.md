@@ -38,4 +38,4 @@ To run the unit tests, simply run `composer test` from inside the plugin's direc
 
 ### Coding Standards
 
-PHP Coding Standards (phpcs) and PHP Code Beautifier and Fixer (phpcbf) are also installed.  To run these, use `composer phpcs` and `composer phpcbf` respectively.  This automatically includes WordPress Coding Standards and Mindsize's custom standards file (`phpcs.xml.dist`).
+PHP Coding Standards (phpcs) and PHP Code Beautifier and Fixer (phpcbf) are also installed.  To run these, use `composer lint` and `composer fix` respectively.  This automatically includes WordPress Coding Standards and Mindsize's custom standards file (`phpcs.xml.dist`).
