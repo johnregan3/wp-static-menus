@@ -73,7 +73,7 @@ class Cacher extends \WP_Fragment_HTML_Cache {
 	 * @return string The cache path.
 	 */
 	public function get_cache_path( $append = null ) {
-		$path = trailingslashit( WP_CONTENT_DIR . '/cache/' . $this->slug );
+		$path = trailingslashit( WP_CONTENT_DIR . '/' . $this->slug );
 
 		/**
 		 * Filter the cache directory path.

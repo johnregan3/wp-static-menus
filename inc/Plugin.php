@@ -230,6 +230,42 @@ class Plugin {
 	}
 
 	/**
+	 * Filter the Cache Length Setting.
+	 *
+	 * @return int|string Cache length, in seconds.
+	 */
+	public function get_cache_length() {
+
+		// The value from settings is set in minutes for simplicity.
+		$cache_length = $this->settings->get_value( 'cache_length' );
+		if ( empty( $cache_length ) || ! is_numeric( $cache_length ) ) {
+
+			// Defaults to 60 min if setting is empty.
+			$cache_length = 60;
+		}
+
+		// Convert minutes into seconds.
+		$cache_length = intval( $cache_length ) * 60;
+
+		/**
+		 * Override the caching length from the plugin settings.
+		 *
+		 * @todo add $menu_args to this filter.
+		 *
+		 * @param string $method The cache length.
+		 *
+		 * @return string The desired cache length, in seconds.
+		 */
+		$filtered_cache_length = apply_filters( 'wp_static_menus_cache_length', $cache_length );
+
+		if ( ! empty( $filtered_cache_length ) && is_numeric( $filtered_cache_length ) ) {
+			return $filtered_cache_length;
+		}
+
+		return $cache_length;
+	}
+
+	/**
 	 * Empty the Object Cache of our Menus.
 	 *
 	 * @action wp_update_nav_menu
@@ -240,7 +276,7 @@ class Plugin {
 	}
 
 	/**
-	 * Render Admin Notice if WP Fragment Cache plugin not found.
+	 * Render Admin Notice if WP_Fragment_Cache plugin not found.
 	 *
 	 * @action admin_notices
 	 */

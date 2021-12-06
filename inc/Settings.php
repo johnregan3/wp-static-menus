@@ -160,7 +160,13 @@ class Settings {
 	 * @action admin_init
 	 */
 	public function register_settings() {
-		register_setting( self::SETTING, self::OPTION_NAME );
+		register_setting(
+			self::SETTING,
+			self::OPTION_NAME,
+			[
+				'sanitize_callback' => [ $this, 'sanitize_settings' ],
+			]
+		);
 
 		add_settings_section(
 			'config',
@@ -173,6 +179,14 @@ class Settings {
 			'theme_locations',
 			__( 'Cached Menu Locations', 'wp-static-menus' ),
 			[ $this, 'locations_render' ],
+			self::SETTING,
+			'config'
+		);
+
+		add_settings_field(
+			'cache_length',
+			__( 'Cache Length', 'wp-static-menus' ),
+			[ $this, 'cache_length_render' ],
 			self::SETTING,
 			'config'
 		);
@@ -262,6 +276,23 @@ class Settings {
 	}
 
 	/**
+	 * Render the cache length field.
+	 */
+	public function cache_length_render() {
+		$value      = intval( $this->get_value( 'cache_length' ) );
+		$value      = ( ! empty( $value ) ) ? $value : 60;
+		$field_name = self::OPTION_NAME . '[cache_length]';
+		?>
+		<fieldset>
+			<label>
+				<input type="number" class="widefat" name="<?php echo esc_attr( $field_name ); ?>" placeholder="60" value="<?php echo esc_attr( $value ); ?>" min="1">
+			</label>
+			<p class="description"><?php esc_html_e( 'Maximum number of minutes to hold cache files.', 'wp-static-menus' ); ?></p>
+		</fieldset>
+		<?php
+	}
+
+	/**
 	 * Render the display exceptions field.
 	 */
 	public function exceptions_render() {
@@ -269,7 +300,7 @@ class Settings {
 		$value      = ( ! empty( $value ) ) ? $value : 0;
 		$field_name = self::OPTION_NAME . '[exceptions]';
 		?>
-		<p><?php esc_html_e( 'Do NOT display cached menus to:', 'wp-static-menus' ); ?></p>
+		<p><?php echo wp_kses_post( __( 'Do <span style="text-decoration: underline">not</span> display cached menus to:', 'wp-static-menus' ) ); ?></p>
 		<fieldset>
 			<label>
 				<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="logged_in" <?php checked( $value, 'logged_in' ); ?>><?php esc_html_e( 'Any Logged-in User', 'wp-static-menus' ); ?>
@@ -360,7 +391,31 @@ class Settings {
 	}
 
 	/**
+	 * Sanitize settings just before they are saved.
+	 *
+	 * @param array $input An array of input from the setting.
+	 *
+	 * @return array Updated array of input.
+	 */
+	public function sanitize_settings( $input ) {
+		// In some circumstances, flush the cache.
+		$existing_cache_length = $this->get_value( 'cache_length' );
+
+		// Force a minimum value of 1 minute.
+		$incoming_cache_length = ( isset( $input['cache_length'] ) ) ? intval( $cache_length ) : 1;
+
+		if ( $existing_cache_length !== $incoming_cache_length ) {
+			$cacher  = new Cacher();
+			$flushed = $cacher->clear_cache();
+		}
+
+		return $input;
+	}
+
+	/**
 	 * Empty the Cache from the settings page.
+	 *
+	 * This is used when the "Flush Static Menus" admin bar button is clicked.
 	 *
 	 * @todo hook this in a better place so we can remove query_args.
 	 *
