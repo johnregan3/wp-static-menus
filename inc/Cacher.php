@@ -20,6 +20,12 @@ namespace Mindsize\WPStaticMenus;
  */
 class Cacher extends \WP_Fragment_HTML_Cache {
 
+	// Cache transient name.
+	const TRANSIENT_NAME = 'wp_static_menus_cache';
+
+	// Length to hold cache, in minutes.
+	const DEFAULT_CACHE_LENGTH = 60;
+
 	/**
 	 * The slug of this cache class.
 	 *

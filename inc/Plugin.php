@@ -50,6 +50,7 @@ class Plugin {
 	 * @action plugins_loaded
 	 */
 	public function init() {
+
 		if ( ! class_exists( 'WP_Fragment_Object_Cache' ) ) {
 			add_action( 'admin_notices', [ $this, 'admin_notice_fragment_cache_not_found' ] );
 			return;
@@ -61,13 +62,17 @@ class Plugin {
 		add_filter( 'plugin_action_links_wp-static-menus/wp-static-menus.php', [ $this->settings, 'settings_link' ] );
 
 		// Flush caches.
-		add_action( 'wp_update_nav_menu', [ $this, 'flush_caches' ] );
+		add_action( 'wp_update_nav_menu', [ $this, 'flush_cache' ] );
 
 		// Flush caches when saving our options.
-		add_action( 'update_option_' . Settings::OPTION_NAME, [ $this, 'flush_caches' ] );
+		add_action( 'update_option_' . Settings::OPTION_NAME, [ $this, 'flush_cache' ] );
 
 		// Go to work.
 		add_filter( 'pre_wp_nav_menu', [ $this, 'pre_wp_nav_menu' ], 20, 2 );
+
+		// Deactivation.
+		register_deactivation_hook( __FILE__, [ $this, 'deactivate' ] );
+
 	}
 
 	/**
@@ -232,20 +237,17 @@ class Plugin {
 	/**
 	 * Filter the Cache Length Setting.
 	 *
-	 * @return int|string Cache length, in seconds.
+	 * @return int|string Cache length, in minutes.
 	 */
 	public function get_cache_length() {
 
 		// The value from settings is set in minutes for simplicity.
 		$cache_length = $this->settings->get_value( 'cache_length' );
+
+		// Defaults to 60 min if setting is empty.
 		if ( empty( $cache_length ) || ! is_numeric( $cache_length ) ) {
-
-			// Defaults to 60 min if setting is empty.
-			$cache_length = 60;
+			$cache_length = Cacher::DEFAULT_CACHE_LENGTH;
 		}
-
-		// Convert minutes into seconds.
-		$cache_length = intval( $cache_length ) * 60;
 
 		/**
 		 * Override the caching length from the plugin settings.
@@ -254,7 +256,7 @@ class Plugin {
 		 *
 		 * @param string $method The cache length.
 		 *
-		 * @return string The desired cache length, in seconds.
+		 * @return string The desired cache length, in minutes.
 		 */
 		$filtered_cache_length = apply_filters( 'wp_static_menus_cache_length', $cache_length );
 
@@ -266,13 +268,51 @@ class Plugin {
 	}
 
 	/**
-	 * Empty the Object Cache of our Menus.
+	 * If the cache time has expired, flush the cache.
+	 *
+	 * Checks to see if the cache transient still exists.
+	 * If not, then delete the cached files.
+	 */
+	public function maybe_flush_cache() {
+		if ( $this->is_time_to_flush_cache() ) {
+			$this->flush_cache();
+		}
+	}
+
+	/**
+	 * Check the transient to see if it is time to flush the cache.
+	 *
+	 * If our transient is empty, cache time has expired.
+	 *
+	 * @return bool
+	 */
+	public function is_time_to_flush_cache() {
+		return empty( get_transient( Cacher::TRANSIENT_NAME ) );
+	}
+
+	/**
+	 * Empty the Menu Cache.
 	 *
 	 * @action wp_update_nav_menu
-	 * @action update_option
+	 * @action update_option_
 	 */
-	public function flush_caches() {
+	public function flush_cache() {
 		$this->cacher->clear_cache();
+		$this->reset_cache_timer();
+	}
+
+	/**
+	 * Reset the "timer" transient for the cache.
+	 */
+	public function reset_cache_timer() {
+		$cache_length = $this->get_cache_length();
+
+		// If anything's wrong, use the default length.
+		if ( empty( $cache_length ) || ! is_numeric( $cache_length ) ) {
+			$cache_length = Cacher::DEFAULT_CACHE_LENGTH;
+		}
+
+		set_transient( Cacher::TRANSIENT_NAME, 1, $cache_length );
 	}
 
 	/**
@@ -290,5 +330,14 @@ class Plugin {
 			<p><?php esc_html_e( 'WP Fragment Cache Plugin is required for Menu Cache to operate.', 'wp-static-menus' ); ?></p>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Clean up on deactivation.
+	 *
+	 * @todo remove 'wp-content/wp-static-menus' directory itself.
+	 */
+	public function deactivate() {
+		$this->flush_cache();
 	}
 }

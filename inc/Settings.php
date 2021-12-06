@@ -11,8 +11,6 @@
 
 namespace Mindsize\WPStaticMenus;
 
-use Mindsize\WPStaticMenus\Cacher;
-
 /**
  * Class Settings.
  *
@@ -26,9 +24,6 @@ class Settings {
 	// WP Option name.
 	const OPTION_NAME = 'wp-static-menus';
 
-	// Nonce Name.
-	const NONCE_NAME = 'wp_static_menus';
-
 	// Flush Cache nonce action.
 	const NONCE_ACTION_FLUSH = 'flush_cache';
 
@@ -38,6 +33,14 @@ class Settings {
 	 * @var stdClass
 	 */
 	protected static $instance;
+
+	/**
+	 * The Plugin instance.
+	 *
+	 * @var Plugin
+	 */
+	protected static $plugin;
+
 
 	/**
 	 * Holds our saved Option values.
@@ -66,18 +69,28 @@ class Settings {
 
 	/**
 	 * Inititalize.
+	 *
+	 * Note that the cache is flushed any time our option is updated.
+	 *
+	 * @see Plugin::init()
 	 */
 	public function init() {
+		$this->plugin = ms_wp_static_menus();
 		$this->option = $this->get_option();
 		add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'admin_notices', [ $this, 'admin_notice_disabled' ] );
-		add_action( 'admin_head-tools_page_' . self::SETTING, [ $this, 'empty_cache' ] );
 
+		// These must always be available for the Settings page form button.
+		add_action( 'wp_ajax_js_flush_cache', [ $this, 'js_flush_cache' ] );
+		add_action( 'admin_footer', [ $this, 'admin_bar_js' ] );
+
+		// Admin bar cache-flushing functionality.
 		if ( $this->get_value( 'show_admin_bar' ) ) {
+			wp_enqueue_script( 'jquery' );
 			add_action( 'admin_bar_menu', [ $this, 'admin_bar_menu' ], 99 );
+			add_action( 'wp_footer', [ $this, 'admin_bar_js' ], 99999 );
 		}
-
 	}
 
 	/**
@@ -109,6 +122,8 @@ class Settings {
 
 	/**
 	 * Create the Empty Cache URL.
+	 *
+	 * @todo remove this.
 	 *
 	 * @return string The Nonce URL.
 	 */
@@ -162,10 +177,7 @@ class Settings {
 	public function register_settings() {
 		register_setting(
 			self::SETTING,
-			self::OPTION_NAME,
-			[
-				'sanitize_callback' => [ $this, 'sanitize_settings' ],
-			]
+			self::OPTION_NAME
 		);
 
 		add_settings_section(
@@ -177,8 +189,8 @@ class Settings {
 
 		add_settings_field(
 			'theme_locations',
-			__( 'Cached Menu Locations', 'wp-static-menus' ),
-			[ $this, 'locations_render' ],
+			__( 'Static Menu Locations', 'wp-static-menus' ),
+			[ $this, 'render_locations' ],
 			self::SETTING,
 			'config'
 		);
@@ -186,7 +198,7 @@ class Settings {
 		add_settings_field(
 			'cache_length',
 			__( 'Cache Length', 'wp-static-menus' ),
-			[ $this, 'cache_length_render' ],
+			[ $this, 'render_cache_length' ],
 			self::SETTING,
 			'config'
 		);
@@ -194,7 +206,7 @@ class Settings {
 		add_settings_field(
 			'exceptions',
 			__( 'Exceptions', 'wp-static-menus' ),
-			[ $this, 'exceptions_render' ],
+			[ $this, 'render_exceptions' ],
 			self::SETTING,
 			'config'
 		);
@@ -209,15 +221,15 @@ class Settings {
 		add_settings_field(
 			'disable_caching',
 			__( 'Disable All Caching', 'wp-static-menus' ),
-			[ $this, 'disable_caching_render' ],
+			[ $this, 'render_disable_caching' ],
 			self::SETTING,
 			'cache_tools'
 		);
 
 		add_settings_field(
 			'empty_all_caches',
-			__( 'Empty All Caches', 'wp-static-menus' ),
-			[ $this, 'empty_all_caches_render' ],
+			__( 'Flush Menu Cache', 'wp-static-menus' ),
+			[ $this, 'render_flush_menu_cache' ],
 			self::SETTING,
 			'cache_tools'
 		);
@@ -225,7 +237,7 @@ class Settings {
 		add_settings_field(
 			'show_admin_bar',
 			__( 'Admin Bar', 'wp-static-menus' ),
-			[ $this, 'show_admin_bar_render' ],
+			[ $this, 'render_show_admin_bar' ],
 			self::SETTING,
 			'cache_tools'
 		);
@@ -241,7 +253,7 @@ class Settings {
 	/**
 	 * Render the Menu Locations field.
 	 */
-	public function locations_render() {
+	public function render_locations() {
 		$value      = $this->get_value( 'theme_locations' );
 		$value      = ( ! empty( $value ) && is_array( $value ) ) ? $value : [];
 		$field_name = self::OPTION_NAME . '[theme_locations]';
@@ -268,6 +280,7 @@ class Settings {
 		</fieldset>
 		<?php
 	}
+
 	/**
 	 * Intro text to the Cache Config settings section.
 	 */
@@ -277,8 +290,11 @@ class Settings {
 
 	/**
 	 * Render the cache length field.
+	 *
+	 * Note that the cache is flushed any time our option is updated.
+	 * This will automatically set up our new cache length.
 	 */
-	public function cache_length_render() {
+	public function render_cache_length() {
 		$value      = intval( $this->get_value( 'cache_length' ) );
 		$value      = ( ! empty( $value ) ) ? $value : 60;
 		$field_name = self::OPTION_NAME . '[cache_length]';
@@ -295,7 +311,7 @@ class Settings {
 	/**
 	 * Render the display exceptions field.
 	 */
-	public function exceptions_render() {
+	public function render_exceptions() {
 		$value      = $this->get_value( 'exceptions' );
 		$value      = ( ! empty( $value ) ) ? $value : 0;
 		$field_name = self::OPTION_NAME . '[exceptions]';
@@ -325,7 +341,7 @@ class Settings {
 	/**
 	 * Render the Disable Caching field.
 	 */
-	public function disable_caching_render() {
+	public function render_disable_caching() {
 		$value      = (bool) $this->get_value( 'disable_caching' );
 		$field_name = self::OPTION_NAME . '[disable_caching]';
 
@@ -337,22 +353,21 @@ class Settings {
 	}
 
 	/**
-	 * Render the Empty All Caches button field.
+	 * Render the Flush Menu Cache button field.
 	 */
-	public function empty_all_caches_render() {
+	public function render_flush_menu_cache() {
 		$field_name = self::OPTION_NAME . '[empty_all_caches]';
 		?>
-		<a type="button" class="button button-secondary" name="<?php echo esc_attr( $field_name ); ?>" href="<?php echo esc_url( self::empty_cache_url() ); ?>"><?php esc_html_e( 'Empty All Caches', 'wp-static-menus' ); ?></a>
+		<a id="flush-menu-cache-button" type="button" class="button button-secondary" name="<?php echo esc_attr( $field_name ); ?>" href="#" onclick="flushStaticMenus();return false;"><?php esc_html_e( 'Flush Menu Cache', 'wp-static-menus' ); ?></a>
 		<?php
 	}
 
 	/**
 	 * Render the Admin Bar field.
 	 */
-	public function show_admin_bar_render() {
+	public function render_show_admin_bar() {
 		$value      = (bool) $this->get_value( 'show_admin_bar' );
 		$field_name = self::OPTION_NAME . '[show_admin_bar]';
-
 		?>
 		<fieldset>
 			<input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $value, 1 ); ?>><?php esc_html_e( 'Display a "Flush Static Menus" button in the Admin Bar?', 'wp-static-menus' ); ?><br>
@@ -391,67 +406,24 @@ class Settings {
 	}
 
 	/**
-	 * Sanitize settings just before they are saved.
-	 *
-	 * @param array $input An array of input from the setting.
-	 *
-	 * @return array Updated array of input.
-	 */
-	public function sanitize_settings( $input ) {
-		// In some circumstances, flush the cache.
-		$existing_cache_length = $this->get_value( 'cache_length' );
-
-		// Force a minimum value of 1 minute.
-		$incoming_cache_length = ( isset( $input['cache_length'] ) ) ? intval( $cache_length ) : 1;
-
-		if ( $existing_cache_length !== $incoming_cache_length ) {
-			$cacher  = new Cacher();
-			$flushed = $cacher->clear_cache();
-		}
-
-		return $input;
-	}
-
-	/**
-	 * Empty the Cache from the settings page.
-	 *
-	 * This is used when the "Flush Static Menus" admin bar button is clicked.
-	 *
-	 * @todo hook this in a better place so we can remove query_args.
-	 *
-	 * @action admin_head-tools_page_wp_static_menus
-	 */
-	public function empty_cache() {
-		if ( ! isset( $_REQUEST[ self::NONCE_NAME ] )
-			||
-			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST[ self::NONCE_NAME ] ) ), self::NONCE_ACTION_FLUSH )
-		) {
-			return;
-		}
-
-		// A little more verification of this action.
-		if ( empty( $_REQUEST['flush_cache'] ) ) {
-			return;
-		}
-
-		$cacher  = new Cacher();
-		$flushed = $cacher->clear_cache();
-
-		add_action( 'admin_notices', [ $this, 'admin_notice_flushed' ] );
-	}
-
-	/**
-	 * Add link to Admin Bar.
+	 * Add Flush Cache link to Admin Bar.
 	 *
 	 * @filter admin_bar_menu
 	 *
 	 * @param obj $wp_admin_bar The WP Admin Bar.
 	 */
 	public static function admin_bar_menu( $wp_admin_bar ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
 		$args = [
-			'id'    => 'wp-static-menus-empty',
+			'id'    => 'wp-static-menus-flush',
 			'title' => __( 'Flush Static Menus', 'wp-static-menus' ),
-			'href'  => self::empty_cache_url(),
+			'href'  => '#',
+			'meta'  => [
+				'onclick' => 'flushStaticMenus(); return false',
+			],
 		];
 
 		$wp_admin_bar->add_node( $args );
@@ -475,25 +447,72 @@ class Settings {
 		}
 		?>
 			<div class="notice notice-error">
-				<?php // translators: link to "disable-caching" ID on the settings page. ?>
+				<?php // translators: link to "Diable Caching" checkbox on the Settings page. ?>
 				<p><?php echo wp_kses_post( sprintf( __( 'Menu Caching is currently <a href="%s">Disabled</a>.', 'wp-static-menus' ), self::settings_url() . '#disable-caching' ) ); ?></p>
 			</div>
 		<?php
 	}
 
 	/**
-	 * Admin notices.
+	 * Empty the Cache via AJAX.
 	 *
-	 * @action admin_notices
+	 * This is used when the "Flush Static Menus" admin bar button is clicked,
+	 * as well as if the button is clicked on the Settings page form.
+	 *
+	 * @action wp_ajax_js_flush_cache
 	 */
-	public function admin_notice_flushed() {
-		if ( 'tools_page_' . self::SETTING !== get_current_screen()->id ) {
+	public function js_flush_cache() {
+		check_ajax_referer( self::NONCE_ACTION_FLUSH, 'security' );
+
+		$this->plugin->flush_cache();
+
+		echo wp_json_encode( 'Cache flushed successfully' );
+		wp_die();
+	}
+
+	/**
+	 * Javascript to handle flushing the cache.
+	 *
+	 * Don't check if admin_bar link is enabled, as this
+	 * is also used by the "flush cachce" button on the Settings page.
+	 *
+	 * @action wp_footer
+	 * @action admin_footer
+	 */
+	public function admin_bar_js() {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 		?>
-			<div class="notice notice-success">
-				<p><?php esc_html_e( 'Static Menus cache emptied.', 'wp-static-menus' ); ?></p>
-			</div>
+		<script type="text/javascript">
+			function flushStaticMenus() {
+				var ajaxUrl = '<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>',
+				data = {
+					'action': 'js_flush_cache',
+					'security': '<?php echo esc_js( wp_create_nonce( self::NONCE_ACTION_FLUSH ) ); ?>',
+				};
+
+				jQuery.post( ajaxUrl, data, function(response) {
+					jQuery( '#wp-admin-bar-wp-static-menus-flush' ).addClass( 'success' );
+					jQuery( '#flush-menu-cache-button' ).attr( 'disabled', 'disabled' );
+					setTimeout( function() {
+						jQuery( '#flush-menu-cache-button' ).removeAttr( 'disabled' );
+						jQuery( '#wp-admin-bar-wp-static-menus-flush' ).removeClass( 'success' );
+					}, 1000 );
+				});
+			}
+		</script>
+		<style type="text/css">
+			#wp-admin-bar-wp-static-menus-flush,
+			#wp-admin-bar-wp-static-menus-flush a {
+				transition: all 500ms;
+			}
+			#wp-admin-bar-wp-static-menus-flush.success,
+			#wp-admin-bar-wp-static-menus-flush.success a {
+				color: #fff !important;
+				background: #00a32a !important;
+			}
+		</style>
 		<?php
 	}
 }
