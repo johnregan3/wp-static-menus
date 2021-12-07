@@ -61,8 +61,15 @@ class Plugin {
 
 		add_filter( 'plugin_action_links_wp-static-menus/wp-static-menus.php', [ $this->settings, 'settings_link' ] );
 
+		// Hook in early so this can be easliy overridden by customizations.
+		add_filter( 'wp_static_menus_cache_file_name', [ $this, 'set_cache_file_name' ], 5 );
+
+		// Set the cache length using our setting.
+		add_filter( 'wp_static_menus_cache_length', [ $this, 'set_cache_length_from_settings' ], 5 );
+
 		// Flush caches.
 		add_action( 'wp_update_nav_menu', [ $this, 'flush_cache' ] );
+		add_action( 'wp_head', [ $this, 'maybe_flush_cache' ] );
 
 		// Flush caches when saving our options.
 		add_action( 'update_option_' . Settings::OPTION_NAME, [ $this, 'flush_cache' ] );
@@ -128,6 +135,36 @@ class Plugin {
 		}
 
 		return $markup;
+	}
+
+	/**
+	 * Filter the cache file name.
+	 *
+	 * If caching user-specific menus is enabled,
+	 * modify the file name to be more specific.
+	 *
+	 * @filter wp_static_menus_cache_file_name
+	 *
+	 * @param string $file_name  The default menu file name.
+	 *
+	 * @return string The cache file name.
+	 */
+	public function set_cache_file_name( $file_name ) {
+		if ( ! empty( $this->settings->get_value( 'disable_user_caching' ) ) ) {
+			return $file_name;
+		}
+
+		$user = wp_get_current_user();
+		if ( ! is_a( $user, 'WP_User' ) || 0 === $user->ID ) {
+			// User is not logged in.
+			return $file_name;
+		}
+
+		// Hash the User ID and User email to prevent access to guessable cache file names.
+		$hash       = md5( $user->id . $user->user_email );
+		$file_name .= '-' . $hash;
+
+		return $file_name;
 	}
 
 	/**
@@ -235,34 +272,48 @@ class Plugin {
 	}
 
 	/**
-	 * Filter the Cache Length Setting.
+	 * Filter the cache length using the value from the Settings page.
 	 *
-	 * @return int|string Cache length, in minutes.
+	 * @filter wp_static_menus_cache_length
+	 *
+	 * @param int|string $cache_length The cache length, in seconds.
+	 *
+	 * @return int The filtered cache length, in seconds.
+	 */
+	public function set_cache_length_from_settings( $cache_length ) {
+		$setting_length = $this->settings->get_value( 'cache_length' );
+
+		if ( ! empty( $setting_length ) && is_numeric( $setting_length ) ) {
+
+			// The Setting uses minutes, so convert it to seconds.
+			return intval( $setting_length ) * 60;
+		}
+		return $cache_length;
+	}
+
+	/**
+	 * Get the cache length.
+	 *
+	 * @return int|string Cache length, in seconds.
 	 */
 	public function get_cache_length() {
 
-		// The value from settings is set in minutes for simplicity.
-		$cache_length = $this->settings->get_value( 'cache_length' );
-
-		// Defaults to 60 min if setting is empty.
-		if ( empty( $cache_length ) || ! is_numeric( $cache_length ) ) {
-			$cache_length = Cacher::DEFAULT_CACHE_LENGTH;
-		}
-
 		/**
-		 * Override the caching length from the plugin settings.
+		 * Override the caching length from the plugin defaults.
 		 *
 		 * @todo add $menu_args to this filter.
 		 *
-		 * @param string $method The cache length.
+		 * @param string $cache_length The default cache length.
 		 *
-		 * @return string The desired cache length, in minutes.
+		 * @return string The desired cache length, in seconds.
 		 */
-		$filtered_cache_length = apply_filters( 'wp_static_menus_cache_length', $cache_length );
+		$filtered_cache_length = apply_filters( 'wp_static_menus_cache_length', Cacher::DEFAULT_CACHE_LENGTH );
 
 		if ( ! empty( $filtered_cache_length ) && is_numeric( $filtered_cache_length ) ) {
-			return $filtered_cache_length;
+			$cache_length = $filtered_cache_length;
 		}
+
+		$cache_length = $cache_length * 60;
 
 		return $cache_length;
 	}
@@ -303,6 +354,8 @@ class Plugin {
 
 	/**
 	 * Reset the "timer" transient for the cache.
+	 *
+	 * Note that the cache length must be in seconds.
 	 */
 	public function reset_cache_timer() {
 		$cache_length = $this->get_cache_length();

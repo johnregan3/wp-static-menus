@@ -196,6 +196,14 @@ class Settings {
 		);
 
 		add_settings_field(
+			'disable_user_caching',
+			__( 'Disable User Menu Caching', 'wp-static-menus' ),
+			[ $this, 'render_disable_user_caching' ],
+			self::SETTING,
+			'config'
+		);
+
+		add_settings_field(
 			'cache_length',
 			__( 'Cache Length', 'wp-static-menus' ),
 			[ $this, 'render_cache_length' ],
@@ -210,6 +218,7 @@ class Settings {
 			self::SETTING,
 			'config'
 		);
+
 
 		add_settings_section(
 			'cache_tools',
@@ -271,13 +280,29 @@ class Settings {
 				$item_value = isset( $value[ $location ] ) ? 1 : 0;
 				?>
 				<label>
-					<input type="checkbox" name="<?php echo esc_attr( $item_name ); ?>" value="1" <?php checked( $item_value, 1 ); ?>><?php echo esc_html( $description ); ?>
+					<input type="checkbox" name="<?php echo esc_attr( $item_name ); ?>" value="1" <?php checked( $item_value, 1 ); ?>><?php echo esc_html( $description ); ?><br>
 				</label>
 				<br>
 				<?php
 			endforeach;
 			?>
 		</fieldset>
+		<?php
+	}
+
+	/**
+	 * Render the Disable User-level Caching field.
+	 */
+	public function render_disable_user_caching() {
+		$value      = (bool) $this->get_value( 'disable_user_caching' );
+		$field_name = self::OPTION_NAME . '[disable_user_caching]';
+
+		?>
+		<fieldset>
+			<input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $value, 1 ); ?>><?php esc_html_e( 'Disable Menu caching for individual users?', 'wp-static-menus' ); ?>
+			<p class="description"><?php esc_html_e( 'Check this box if your menus do not show user-specific information, like "Edit Profile" links.', 'wp-static-menus' ); ?></p>
+		</fieldset>
+
 		<?php
 	}
 
@@ -319,7 +344,7 @@ class Settings {
 		<p><?php echo wp_kses_post( __( 'Do <span style="text-decoration: underline">not</span> display cached menus to:', 'wp-static-menus' ) ); ?></p>
 		<fieldset>
 			<label>
-				<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="logged_in" <?php checked( $value, 'logged_in' ); ?>><?php esc_html_e( 'Any Logged-in User', 'wp-static-menus' ); ?>
+				<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="logged_in" <?php checked( $value, 'logged_in' ); ?>><?php esc_html_e( 'Any Logged-in User', 'wp-static-menus' ); ?><br>
 			</label><br>
 			<label>
 				<input type="radio" name="<?php echo esc_attr( $field_name ); ?>" value="admins" <?php checked( $value, 'admins' ); ?>><?php esc_html_e( 'Super Administrators, Administrators, and Editors', 'wp-static-menus' ); ?>
