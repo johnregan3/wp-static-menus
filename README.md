@@ -8,7 +8,7 @@ WordPress plugin for caching menus and serving them statically. Based upon [WP S
 
 This plugin caches menus by menu Theme Location (the ones registered in the theme), not the individual user-created nav venus.
 
-It also uses HTML files located in `wp-content/cache/wp-static-menus/` to store each menu's markup.
+It also uses HTML files located in `wp-content/wp-static-menus/` to store each menu's markup.
 
 ## Installation
 
