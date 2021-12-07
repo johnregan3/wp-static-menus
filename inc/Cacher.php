@@ -20,6 +20,12 @@ namespace Mindsize\WPStaticMenus;
  */
 class Cacher extends \WP_Fragment_HTML_Cache {
 
+	// Cache transient name.
+	const TRANSIENT_NAME = 'wp_static_menus_cache';
+
+	// Length to hold cache, in seconds.
+	const DEFAULT_CACHE_LENGTH = HOUR_IN_SECONDS;
+
 	/**
 	 * The slug of this cache class.
 	 *
@@ -66,14 +72,14 @@ class Cacher extends \WP_Fragment_HTML_Cache {
 	/**
 	 * Get the path to the directory where cache files are stored.
 	 *
-	 * Defaults to 'wp-content/cache/wp-static-menus/'.
+	 * Defaults to 'wp-content/wp-static-menus/'.
 	 *
 	 * @param string $append Optional. String to append to the path.
 	 *
 	 * @return string The cache path.
 	 */
 	public function get_cache_path( $append = null ) {
-		$path = trailingslashit( WP_CONTENT_DIR . '/cache/' . $this->slug );
+		$path = trailingslashit( WP_CONTENT_DIR . '/' . $this->slug );
 
 		/**
 		 * Filter the cache directory path.
@@ -107,7 +113,7 @@ class Cacher extends \WP_Fragment_HTML_Cache {
 		if ( ! $this->is_debug() ) {
 			return;
 		}
-		return __( 'Start WP Static Menus', 'wp-static-menus' );
+		$out = __( 'Start WP Static Menus', 'wp-static-menus' );
 	}
 
 	/**
